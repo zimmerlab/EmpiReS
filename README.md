@@ -1,7 +1,10 @@
----
-title: "Vignette: EmpiReS - Differential Analysis of Gene Expression and
-Alternative Splicing"
----
+# EmpiReS - Differential Analysis of Gene Expression and Alternative Splicing
+
+This vignette showcases usage examples of EmpiReS. However, EmpiReS is also available as a 
+[docker/podman image](https://hub.docker.com/repository/docker/hadziahmetovic/empires/general)
+and also incorporated into workflows from [watchdog](https://github.com/zimmerlab/Differential-Workflow) 
+and nextflow*(following soon).
+
 
 EmpiReS is a method for differential analysis of RNA-Seq gene expression
 data and for the detection of differential alternative splicing.
@@ -9,25 +12,24 @@ Furthermore, in the paper a novel benchmarking approach is presented
 that does not assume a given statistical model but instead uses measured
 data to simulate differential expression or differential alternative
 splicing. The software package of EmpiReS provides a pipeline that
-allows all these analysis - to simulate benchmarking data, to analysis
-differential splicing and to analysis differential alternative splicing.
+allows all these analysis - to simulate benchmarking data, to analyze
+differential splicing and to analyze differential alternative splicing.
 This vignette will show how to use the package for each of these tasks.
 
-# System Requirements
+## 1 System Requirements
 
 All the examples given in this vignette work with the data (and jar
-file) included in the EmpiReS tarball available from
-<https://www.bio.ifi.lmu.de/files/download/EmpiReS/EmpiReS.tar.gz>. All
+file) included in the EmpiReS tarball provided in this repository. All
 paths are relative to the directory where the tarball is extracted to.
 
-You will need the samtools suite (version 1.10) and a java runtime
-environment ($>=$ version 1.14) installed.
+You will need the samtools suite (version >=1.10) and a java runtime
+environment (version >=14) installed.
 
 Before you start this vignette, you should call the `fillup.sh` script
 included in the tarball, as it will generate some additional inputs
 needed for the example commands in this vignette.
 
-# Analysis of Differential Alternative Splicing {#DAS}
+## <a name="DAS"></a> 2 Differential Alternative Splicing
 
 There are two possible inputs for EmpiReS - mapped reads as `BAM` files
 or unmapped reads from `fastq` files. EmpiReS uses equivalence classes
@@ -35,18 +37,18 @@ as features and thus needs to derive counts for equivalence classes. An
 equivalence class is a set of transcripts with which a set of reads is
 compatible and they are, thus, constructed by deriving for each read the
 set of transcripts that are compatible with it. When unmapped reads are
-given the equivalence class based variant of contextmap (see EmpiReS
+given the equivalence class based variant of ContextMap (see EmpiReS
 paper) is used to map the reads which will directly output read counts
 for equivalence classes. When mapped reads from `BAM` files are used the
 first step is to derive read counts for equivalence classes, so only the
 first step of the pipeline differs depending on the available input and
 all subsequent steps are the same.
 
-## Derive Equivalence Class Counts
+### 2.1 Derive Equivalence Class Counts
 
-### EC-contextmap using Unmapped Reads (fastq files) {#ec-contextmap}
+#### <a name="ec-contextmap"><a/> 2.1.1 EC-ContextMap using Unmapped Reads (fastq files)
 
-The EC-contextmap mapper is based on suffix arrays and LCP tables which
+The EC-ContextMap mapper is based on suffix arrays and LCP tables which
 have to build for the transcriptome before the mapping can be performed.
 To build this index the `build_index` task of the EmpiReS jar has to be
 called. It needs as inputs:
@@ -80,13 +82,13 @@ human transcriptome run:
         -gtf EXAMPLES/Homo_sapiens.GRCh37.75.gtf \
         -genome EXAMPLES/HUMAN_GENOME_GRCh37.75/Homo_sapiens.GRCh37.75.dna.toplevel.fa \
         -genomeidx EXAMPLES/HUMAN_GENOME_GRCh37.75/Homo_sapiens.GRCh37.75.dna.toplevel.fa.fai \
-        -o EXAMPLES/mapping_reads_to_ECMs/human.GRCh37.65.ecm.ref
+        -o EXAMPLES/mapping_reads_to_ECMs/human.GRCh37.75.ecm.ref
 
 This will create the file
-`EXAMPLES/mapping\_reads\_to\_ECMs/human.GRCh37.65.ecm.ref` which is a
-binary index file that is used by the EC-contextmap mapper.
+`EXAMPLES/mapping_reads_to_ECMs/human.GRCh37.75.ecm.ref` which is a
+binary index file that is used by the EC-ContextMap mapper.
 
-The mapping using the EC-contextmap mapper takes advantage of the
+The mapping using the EC-ContextMap mapper takes advantage of the
 context of all reads, therefore all samples are mapped together. The
 inputs of the `ecmapper` task are:
 
@@ -132,7 +134,7 @@ Note that the fastq files referenced in this file are created by the
 vignette. The paths of the fastq files are relative to the directory\
 `EXAMPLES/simulate_reads/TEST_OUTPUT/` which can be passed to EmpiReS
 using the `-basedir` option. The counts for equivalence classes
-resulting from the mapping of EC-contextmap are written to the path
+resulting from the mapping of EC-ContextMap are written to the path
 provided by the option `-o`:
 
     java -Xmx10G -jar empires.jar ecmapper \
@@ -161,7 +163,7 @@ the header). Each entry contains the number of reads for each sample
 that was mapped in the order the samples are given in the sample table
 file.
 
-### Derive Equivalence Class Counts from Mapped Reads (BAM files) {#ecFromBAM}
+#### <a name="ec-fromBAM"><a/> 2.1.2 Derive Equivalence Class Counts from Mapped Reads (BAM files)
 
 If the reads were already mapped by another mapper, EmpiReS also allows
 to start from BAM files. In this case the first step is to derive
@@ -192,7 +194,7 @@ takes the following inputs:
 -   optionally a base directory where all paths of the sample table are
     relative to (`-basedir`)
 
-and writes the EC-contextmap counts to the path provided by (`-o`).
+and writes the EC-ContextMap counts to the path provided by (`-o`).
 
 Note that the BAM files referenced in this file are created by the
 `fillup.sh` script, so you have to call it first to continue with the
@@ -226,17 +228,14 @@ the header). Each entry contains the number of reads for each sample
 that was mapped in the order the samples are given in the sample table
 file.
 
-## Analysis of Differential Alternative Splicing {#DE_DAS}
+### <a name="DE_DAS"><a/> 2.2 Analysis of Differential Alternative Splicing
 
 Finally, to identify differential alternative splicing events from the
 equivalence class counts, the `diffexp_diffsplic_on_eccounts` task from
 the EmpiReS jar has to be called. It needs the following inputs:
 
--   the equivalence class counts (`-i`) derived from BAM files (see
-    section [2.1.2](#ecFromBAM){reference-type="ref"
-    reference="ecFromBAM"}) or by the EC-contextmap mapper (see section
-    [2.1.1](#ec-contextmap){reference-type="ref"
-    reference="ec-contextmap"})
+-   the equivalence class counts (`-i`) derived from BAM files or by the EC-ContextMap mapper (see section
+    Derive Equivalence Class Counts)
 
 -   a sample table (`-samples`) that contains for each measurement a
     line containing the **label** of the sample and the **condition**.
@@ -293,15 +292,14 @@ p-value (**diffsplic.fdr**) and the difference between the fold changes
 of the two involved equivalence classes (fold change of fold changes,
 **diffsplic.difflog2fc**).
 
-# Analysis of Differential Expression
+## 3 Differential Expression
 
-The steps described in section [2](#DAS){reference-type="ref"
-reference="DAS"} will also analyze differential expression, so when
-fastq or BAM files are available just follow the steps described in that
-section. Additionally, EmpiReS allows to analyze differential expression
-from a files that can easily be exported from an expression set in R.
-For this the task `diffexp_on_eset` is used that takes the following
-inputs:
+The steps described in section [2](#DAS) will also analyze differential 
+expression, so when fastq or BAM files are available just follow the 
+steps described in that section. Additionally, EmpiReS allows to analyze 
+differential expression from a files that can easily be exported from an 
+expression set in R. For this the task `diffexp_on_eset` is used that 
+takes the following inputs:
 
 -   input directory (`-inputdir`) containing three files: `exprs.txt`
     containing the feature count matrix with features as rows and
@@ -314,15 +312,15 @@ inputs:
     the columns correspond to the measured samples.
 
         239 234 152 211 202 161
-        11   6    3   5     4   4
+         11   6   3   5   4   4
         261 277 181 290 182 213
-        8     15     6    11  7   8
+          8  15   6  11   7   8
         328 301 258 374 279 287
-        65   53  46  64  41  47
+         65  53  46  64  41  47
         176 192 153 186 123 123
-        57   59  69  69  67  71
-        108 110 90   87  65  77
-        11   18  11  16  12  12
+         57  59  69  69  67  71
+        108 110  90  87  65  77
+         11  18  11  16  12  12
 
     The file `f_data.txt` contains the names of the features that are
     contained in the matrix contained in `exprs.txt`. It has the same
@@ -380,20 +378,20 @@ EmpiReS jar can be called:
 The output table `EXAMPLES/DE_from_eset.tsv` contains for each gene a
 row that contains the log2 fold change and the FDR corrected p-value:
 
-    gene            log2FC  fdr
-    ENSG00000164818 -1,040  0,000e+00
-    ENSG00000180071 -1,380  0,000e+00
-    ENSG00000023228 -1,660  0,000e+00
-    ENSG00000120334 1,350   0,000e+00
-    ENSG00000157600 0,970   0,000e+00
-    ENSG00000049883 -1,270  0,000e+00
-    ENSG00000132305 -1,130  0,000e+00
-    ENSG00000006625 1,480   0,000e+00
-    ENSG00000037897 0,950   0,000e+00
+    gene            log2FC   fdr
+    ENSG00000164818 -1,040   0,000e+00
+    ENSG00000180071 -1,380   0,000e+00
+    ENSG00000023228 -1,660   0,000e+00
+    ENSG00000120334  1,350   0,000e+00
+    ENSG00000157600  0,970   0,000e+00
+    ENSG00000049883 -1,270   0,000e+00
+    ENSG00000132305 -1,130   0,000e+00
+    ENSG00000006625  1,480   0,000e+00
+    ENSG00000037897  0,950   0,000e+00
 
-# Benchmarking of Differential Expression and Differential Alternative Splicing
+## 4 Benchmarking of Differential Expression and Differential Alternative Splicing
 
-## Simulate Counts {#simCounts}
+### <a name="simCounts"><a/> 4.1 Simulate Counts
 
 To simulate benchmarking datasets EmpiReS uses data with many replicates
 which are grouped into two simulated conditions. To introduce changed
@@ -418,11 +416,11 @@ alternative splicing. As inputs it needs:
     random, or as described in the paper two technical replicates can be
     distributed to both conditions.
 
-        gene                cond1.rep1  cond1.rep2  cond1.rep3  cond2.rep1  cond2.rep2  cond2.rep3
-        ENSG00000000003  527           568         674             718         685          564
-        ENSG00000000005  12         10            11                16            17              11
-        ENSG00000000419  232           230             346             312          334            258
-        ENSG00000000457  66         57              70              66              83              76
+        gene             cond1.rep1  cond1.rep2  cond1.rep3  cond2.rep1  cond2.rep2  cond2.rep3
+        ENSG00000000003  527         568         674         718         685         564
+        ENSG00000000005  12          10          11          16          17          11
+        ENSG00000000419  232         230         346         312         334         258
+        ENSG00000000457  66          57          70          66          83          76
 
 -   list of transcripts that should be simulated
     (`-transcriptsToSimulate`, both differential and unchanged
@@ -472,10 +470,10 @@ directory path (`-od`):
     simulated transcript in each sample
 
         C1R1    C1R2    C1R3    C2R1    C2R2    C2R3
-        ENST00000589042 863 844 590 851  560     591
-        ENST00000359218 45   41  59  131     111      95
-        ENST00000375735 778 798 554 1793    1456    1461
-        ENST00000334267 121 115 98   136     83   97
+        ENST00000589042 863 844 590  851  560    591
+        ENST00000359218  45  41  59  131  111     95
+        ENST00000375735 778 798 554 1793 1456   1461
+        ENST00000334267 121 115  98  136   83     97
 
 -   `simul.info`: detailed information about the simulated changes -
     there is line for each transcript that was simulated with a change
@@ -519,7 +517,7 @@ The simulation of the counts can be called by:
        -gtf EXAMPLES/Homo_sapiens.GRCh37.75.gtf \
        -od EXAMPLES/simulate_transcript_counts/TEST_OUTPUT/
 
-## Simulate Reads For Counts {#simReads}
+### <a name="simReads"><a/> 4.2 Simulate Reads For Counts
 
 Given the simulated counts for transcripts we need to simulate reads for
 these counts. The task `generate_reads` generates read sequences (as
@@ -575,7 +573,7 @@ The `generate_reads` task can be called by:
 
 The output bamfiles from the read generation are not yet coordinate
 sorted, which is needed for many subsequent steps, such as to derive
-EC-contextmap counts from BAM files. The sorting can easily be done with
+EC-ContextMap counts from BAM files. The sorting can easily be done with
 samtools: (<http://www.htslib.org/download/>) with the command samtools
 sort:
 
@@ -589,18 +587,14 @@ sort:
 The sample table written by the read generation already refers to the
 paths `${prefix}_sorted.bam` generated by this snippet.
 
-## Evaluation of Differential Expression and Differential Alternative Splicing
+### 4.3 Evaluation of Differential Expression and Differential Alternative Splicing
 
-The steps described in sections [4.1](#simCounts){reference-type="ref"
-reference="simCounts"} and [4.2](#simReads){reference-type="ref"
-reference="simReads"} already produce all inputs needed to analyze
-differential expression and differential alternative splicing, both from
-fastq files (see section [2.1.1](#ec-contextmap){reference-type="ref"
-reference="ec-contextmap"}) or from the ideal mapping BAM files
-(containing the mapping exactly as simulated, see section
-[2.1.2](#ecFromBAM){reference-type="ref" reference="ecFromBAM"}). To
-derive the counts for the equivalence classes one can directly use the
-command:
+The steps described in sections [4.1](#simCounts) and [4.2](#simReads) already 
+produce all inputs needed to analyze differential expression and differential 
+alternative splicing, both from fastq files (see section [2.1.1](#ec-contextmap)) 
+or from the ideal mapping BAM files (containing the mapping exactly as simulated, 
+see section [2.1.2](#ecFromBAM)). To derive the counts for the equivalence 
+classes one can directly use the command:
 
     java -Xmx10G -jar empires.jar ecmapper \
         -index EXAMPLES/mapping_reads_to_ECMs/human.GRCh37.65.ecm.ref \
@@ -609,9 +603,8 @@ command:
         -o EXAMPLES/stem_ecm_mapping_ecm.counts
 
 that uses the sample table written by the `generate_reads` task. Note
-that the index for the equivalence class variant of contextmap needs to
-be built first, for details on how this is done see section
-[2.1.1](#ec-contextmap){reference-type="ref" reference="ec-contextmap"}.
+that the index for the equivalence class variant of ContextMap needs to
+be built first, for details on how this is done see section [2.1.1](#ec-contextmap). 
 If the evaluation should be based on another mapper or on the BAM files
 that contain the simulated mapping, you can instead use this command:
 
@@ -625,7 +618,7 @@ This command again uses the same table created by the `generate_reads`
 task which contains the paths to the ideal mapping BAM files. When the
 results of other mappers should be used, the sample table together with
 the `-basedir` option have to be adapted (for details see section
-[2.1.2](#ecFromBAM){reference-type="ref" reference="ecFromBAM"}).
+[2.1.2](#ecFromBAM)).
 
 Both these commands write a count matrix
 (`EXAMPLES/stem_ecm_mapping_ecm.counts` and\
