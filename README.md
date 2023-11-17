@@ -138,7 +138,7 @@ resulting from the mapping of EC-ContextMap are written to the path
 provided by the option `-o`:
 
     java -Xmx10G -jar empires.jar ecmapper \
-        -index EXAMPLES/mapping_reads_to_ECMs/human.GRCh37.65.ecm.ref \
+        -index EXAMPLES/mapping_reads_to_ECMs/human.GRCh37.75.ecm.ref \
         -table EXAMPLES/simulate_reads/TEST_OUTPUT/sample.table \
         -basedir EXAMPLES/simulate_reads/TEST_OUTPUT/ \
         -o EXAMPLES/stem_ecm_mapping_ecm.counts
@@ -597,7 +597,7 @@ see section [2.1.2](#ecFromBAM)). To derive the counts for the equivalence
 classes one can directly use the command:
 
     java -Xmx10G -jar empires.jar ecmapper \
-        -index EXAMPLES/mapping_reads_to_ECMs/human.GRCh37.65.ecm.ref \
+        -index EXAMPLES/mapping_reads_to_ECMs/human.GRCh37.75.ecm.ref \
         -table EXAMPLES/simulate_reads/TEST_OUTPUT/sample.table \
         -basedir EXAMPLES/simulate_reads/TEST_OUTPUT/ \
         -o EXAMPLES/stem_ecm_mapping_ecm.counts
