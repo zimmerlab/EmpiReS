@@ -1,4 +1,4 @@
-package empires;
+package nlEmpiRe;
 
 import lmu.utils.NumUtils;
 import lmu.utils.plotting.PlotCreator;
@@ -9,6 +9,7 @@ import java.util.Vector;
 
 import static lmu.utils.ObjectGetter.map;
 import static lmu.utils.ObjectGetter.toVector;
+import static nlEmpiRe.SparseCumulativeDistribution.QUANTILES;
 
 public class DoubleDiffResult {
 
@@ -19,15 +20,15 @@ public class DoubleDiffResult {
     public String testName = "untested";
 
 
-    public empires.NormalizedReplicateSet normedReplicateSet1;
+    public NormalizedReplicateSet normedReplicateSet1;
     public Collection<String> subFeatures1;
 
-    public empires.NormalizedReplicateSet normedReplicateSet2;
+    public NormalizedReplicateSet normedReplicateSet2;
     public Collection<String> subFeatures2;
 
 
-    public Collection<empires.FeatureInfo> featureInfos1;
-    public Collection<empires.FeatureInfo> featureInfos2;
+    public Collection<FeatureInfo> featureInfos1;
+    public Collection<FeatureInfo> featureInfos2;
 
     public DoubleDiffSparseDistribution differenceFoldChangeDistribution;
     public DoubleDiffSparseDistribution correctedDifferenceFoldChangeDistribution;
@@ -46,8 +47,6 @@ public class DoubleDiffResult {
     public Double estimatedFC = null;
 
     public double meanFC;
-    public double f1meanFC;
-    public double f2meanFC;
 
     public double pval = 1.0;
     public double fdr = 1.0;
@@ -57,8 +56,8 @@ public class DoubleDiffResult {
 
     }
 
-    DoubleDiffResult(String testName, Collection<String> subFeatures1, empires.NormalizedReplicateSet normedReplicateSet1,
-                     Collection<String> subFeatures2, empires.NormalizedReplicateSet normedReplicateSet2, DiffExpManager diffExpManager) {
+    DoubleDiffResult(String testName, Collection<String> subFeatures1, NormalizedReplicateSet normedReplicateSet1,
+                     Collection<String> subFeatures2, NormalizedReplicateSet normedReplicateSet2, DiffExpManager diffExpManager) {
 
         this.testName = testName;
         this.subFeatures1 = subFeatures1;
@@ -80,9 +79,12 @@ public class DoubleDiffResult {
     }
 
     public PlotCreator.BoxPlotBuilder drawDiffFCPlots(PlotCreator pc, boolean corrected) {
+        if (!fillFeatures()) {
+            return null;
+        }
         PlotCreator.BoxPlotBuilder bpb = pc.buildBoxPlot();
 
-        pc.setTitle("isoforms1: %d isoforms2: %d fcdiff: %.2f (mean: %.2f)", subFeatures1.size(), subFeatures2.size(), estimatedFC, meanFC);
+        pc.setTitle("isoforms1: %s isoforms2: %s fcdiff: %.2f (mean: %.2f)", subFeatures1, subFeatures2, estimatedFC, meanFC);
         Color[] colors = new Color[] {Color.GREEN, Color.BLUE};
 
         for(int i=0; i<colors.length; i++) {
@@ -94,9 +96,9 @@ public class DoubleDiffResult {
                 double m1 = normedReplicateSet1.getNormed(feature).mean;
                 double m2 = normedReplicateSet2.getNormed(feature).mean;
 
-                empires.ErrorEstimationDistribution err = diffExpManager.getDiffError(feature);
+                ErrorEstimationDistribution err = diffExpManager.getDiffError(feature);
 
-                Vector<Double> quantiles = map(SparseCumulativeDistribution.QUANTILES, (_q) -> m2  - m1 + err.getFoldChangeToCumulativeFrequency(_q));
+                Vector<Double> quantiles = map(QUANTILES, (_q) -> m2  - m1 + err.getFoldChangeToCumulativeFrequency(_q));
                 bpb.addBox(feature, quantiles, colors[i]);
 
             }
@@ -104,7 +106,9 @@ public class DoubleDiffResult {
 
 
         }
-        bpb.addBox("diff", unpairedDiffFoldChangeDistribution.quantiles);
+        if (unpairedDiffFoldChangeDistribution != null) {
+            bpb.addBox("diff", unpairedDiffFoldChangeDistribution.quantiles);
+        }
         pc.setLabels("", "log2 diff fc", null);
         return bpb;
 
@@ -114,7 +118,11 @@ public class DoubleDiffResult {
     public PlotCreator.BoxPlotBuilder drawSignalDistributionBoxPlots(PlotCreator pc, boolean corrected) {
         PlotCreator.BoxPlotBuilder bpb = pc.buildBoxPlot();
 
-        pc.setTitle("isoforms1: %d isoforms2: %d fcdiff: %.2f (mean: %.2f)", subFeatures1.size(), subFeatures2.size(), estimatedFC, meanFC);
+        if (!fillFeatures()) {
+            return null;
+        }
+        //pc.setTitle("isoforms1: %d isoforms2: %d fcdiff: %.2f (mean: %.2f)", subFeatures1.size(), subFeatures2.size(), estimatedFC, meanFC);
+        pc.setTitle("isoforms1: %s isoforms2: %s fcdiff: %.2f (mean: %.2f)", subFeatures1, subFeatures2, estimatedFC, meanFC);
 
 
         Color[] colors = new Color[] {Color.GREEN, Color.BLUE};
@@ -130,12 +138,12 @@ public class DoubleDiffResult {
 
                 for(int condI = 0; condI < 2; condI++) {
 
-                    empires.NormalizedReplicateSet base = (condI == 0) ? normedReplicateSet1 : normedReplicateSet2;
+                    NormalizedReplicateSet base = (condI == 0) ? normedReplicateSet1 : normedReplicateSet2;
 
 
                     double fc = base.getNormed(feature).mean;
                     ErrorEstimationDistribution bg = base.getError(feature);
-                    Vector<Double> quantiles = map(SparseCumulativeDistribution.QUANTILES, (_q) -> fc + bg.getFoldChangeToCumulativeFrequency(_q));
+                    Vector<Double> quantiles = map(QUANTILES, (_q) -> fc + bg.getFoldChangeToCumulativeFrequency(_q));
                     Color c = colors[i];
                     if(condI == 0) {
                         c = c.brighter();
@@ -153,6 +161,16 @@ public class DoubleDiffResult {
         return bpb;
     }
 
+    boolean fillFeatures() {
+        if (subFeatures1 == null && featureInfos1 != null) {
+            subFeatures1 = map(featureInfos1, (f) -> f.feature);
+        }
+        if (subFeatures2 == null && featureInfos2 != null) {
+            subFeatures2 = map(featureInfos2, (f) -> f.feature);
+        }
+        System.out.printf("subfeatures: %s, %s\n", subFeatures1, subFeatures2);
+        return subFeatures1 != null && subFeatures2 != null;
+    }
     public void drawDistributions(PlotCreator pc, boolean corrected) {
 
         if(featureSet1DiffDistribution != null)
@@ -167,82 +185,6 @@ public class DoubleDiffResult {
         pc.setTitle("isoforms1: %d isoforms2: %d fcdiff: %.2f (mean: %.2f)", subFeatures1.size(), subFeatures2.size(), estimatedFC, meanFC);
 
         pc.setLabels("log2(FC)", "frequency", "topright");
-    }
-
-    public String getTestName() {
-        return testName;
-    }
-
-    public empires.NormalizedReplicateSet getNormedReplicateSet1() {
-        return normedReplicateSet1;
-    }
-
-    public Collection<String> getSubFeatures1() {
-        return subFeatures1;
-    }
-
-    public NormalizedReplicateSet getNormedReplicateSet2() {
-        return normedReplicateSet2;
-    }
-
-    public Collection<String> getSubFeatures2() {
-        return subFeatures2;
-    }
-
-    public Collection<empires.FeatureInfo> getFeatureInfos1() {
-        return featureInfos1;
-    }
-
-    public Collection<FeatureInfo> getFeatureInfos2() {
-        return featureInfos2;
-    }
-
-    public DoubleDiffSparseDistribution getDifferenceFoldChangeDistribution() {
-        return differenceFoldChangeDistribution;
-    }
-
-    public DoubleDiffSparseDistribution getCorrectedDifferenceFoldChangeDistribution() {
-        return correctedDifferenceFoldChangeDistribution;
-    }
-
-    public SparseCumulativeDistribution getFeatureSet1DiffDistribution() {
-        return featureSet1DiffDistribution;
-    }
-
-    public SparseCumulativeDistribution getFeatureSet2DiffDistribution() {
-        return featureSet2DiffDistribution;
-    }
-
-    public SparseCumulativeDistribution getUnpairedDiffFoldChangeDistribution() {
-        return unpairedDiffFoldChangeDistribution;
-    }
-
-    public DiffExpManager getDiffExpManager() {
-        return diffExpManager;
-    }
-
-    public Double getEstimatedFC() {
-        return estimatedFC;
-    }
-
-    public double getMeanFC() {
-        return meanFC;
-    }
-
-    public double getF1meanFC() {
-        return f1meanFC;
-    }
-
-    public double getF2meanFC() {
-        return f2meanFC;
-    }
-
-    public double getPval() {
-        return pval;
-    }
-
-    public double getFdr() {
-        return fdr;
     }
 }
 

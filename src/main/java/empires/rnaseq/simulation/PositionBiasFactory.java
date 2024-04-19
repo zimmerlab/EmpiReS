@@ -1,4 +1,4 @@
-package empires.rnaseq.simulation;
+package nlEmpiRe.rnaseq.simulation;
 
 import lmu.utils.*;
 import org.apache.commons.math3.distribution.NormalDistribution;
@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 
 import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class PositionBiasFactory {
 
@@ -161,7 +162,7 @@ public class PositionBiasFactory {
         RegionVector trVec = isoforms.get(transcriptId);
         int trLength = trVec.getCoveredLength();
 
-        empires.rnaseq.simulation.PositionBias positionBias = new PositionBias(fragmentLengthDistrib, trLength, getBiasModel(trLength), readLength);
+        PositionBias positionBias = new PositionBias(fragmentLengthDistrib, trLength, getBiasModel(trLength), readLength);
         log.trace("will generate %d reads for %s (l: %d)", numReads, transcriptId, trLength);
         for(int i=0; i<numReads; i++) {
             consumer.accept(new SimulatedRead(gene, strand, transcriptId, trVec, readLength, isoforms, paired, positionBias));

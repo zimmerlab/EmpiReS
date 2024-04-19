@@ -1,13 +1,15 @@
-package empires.rnaseq;
+package nlEmpiRe.rnaseq;
 
 import lmu.utils.*;
 import lmu.utils.tuple.Tuple4;
+import nlEmpiRe.input.EQClassInput;
 
 import java.util.*;
 
 import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
 
+import org.apache.logging.log4j.Logger;
 public class ReducedTranscriptPresentation {
 
     Logger log = LogConfig.getLogger();

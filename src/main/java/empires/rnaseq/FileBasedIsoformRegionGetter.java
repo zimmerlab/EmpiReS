@@ -1,4 +1,4 @@
-package empires.rnaseq;
+package nlEmpiRe.rnaseq;
 
 
 import lmu.utils.*;
@@ -18,7 +18,7 @@ public class FileBasedIsoformRegionGetter extends IsoformRegionGetter
 
 
     Vector<Tuple3<String,Boolean,Region1D<String>>> infos = new Vector<>();
-    HashMap<String, empires.rnaseq.MultiIsoformRegion> regions = new HashMap<>();
+    HashMap<String, MultiIsoformRegion> regions = new HashMap<>();
 
     HashMap<String, String> isoform2multi = new HashMap<>();
     HashMap<String, String> coding2multi = new HashMap<>();
@@ -28,7 +28,7 @@ public class FileBasedIsoformRegionGetter extends IsoformRegionGetter
 
     }
 
-    void process(empires.rnaseq.MultiIsoformRegion r)
+    void process(MultiIsoformRegion r)
     {
         ObjectGetter.apply(r.isoforms.keySet(), (_k) -> isoform2multi.put(_k, r.id));
         ObjectGetter.apply(r.coding.keySet(), (_k) -> coding2multi.put(_k, r.id));
@@ -54,18 +54,18 @@ public class FileBasedIsoformRegionGetter extends IsoformRegionGetter
 
         Iterator<String> it = FileUtils.getLineIterator(f);
         hr.init(it.next());
-        empires.rnaseq.MultiIsoformRegion current = null;
+        MultiIsoformRegion current = null;
         while (it.hasNext())
         {
             hr.setRecord(it.next());
             if (current == null || !current.id.equals(hr.getString("id")))
             {
 
-                current = new empires.rnaseq.MultiIsoformRegion();
+                current = new MultiIsoformRegion();
                 current.id = hr.getString("id");
                 current.name = (!gotname) ? current.id : hr.getString("name");
                 current.biotype = hr.getString("type");
-                if(current.biotype.startsWith(empires.rnaseq.MultiIsoformRegionWriter.PROTEIN_RV_TYPE))
+                if(current.biotype.startsWith(MultiIsoformRegionWriter.PROTEIN_RV_TYPE))
                 {
                     current.biotype = "protein_coding";
 
@@ -105,34 +105,34 @@ public class FileBasedIsoformRegionGetter extends IsoformRegionGetter
         log.info("read %d genes from %s", regions.size(), f.getAbsolutePath());
     }
 
-    public Pair<empires.rnaseq.MultiIsoformRegion, RegionVector> getIsoform(String id)
+    public Pair<MultiIsoformRegion, RegionVector> getIsoform(String id)
     {
         String g = isoform2multi.get(id);
         if(g == null)
             throw new FRuntimeException("unknown isoform id: %s", id);
 
-        empires.rnaseq.MultiIsoformRegion mir = getRegionById(g);
+        MultiIsoformRegion mir = getRegionById(g);
         return Pair.create(mir, mir.isoforms.get(id));
     }
 
-    public Pair<empires.rnaseq.MultiIsoformRegion, RegionVector> getCoding(String id)
+    public Pair<MultiIsoformRegion, RegionVector> getCoding(String id)
     {
         String g = coding2multi.get(id);
         if(g == null)
             throw new FRuntimeException("unknown coding sequence id: %s", id);
 
-        empires.rnaseq.MultiIsoformRegion mir = getRegionById(g);
+        MultiIsoformRegion mir = getRegionById(g);
         return Pair.create(mir, mir.coding.get(id));
 
     }
 
 
-    public HashMap<String, empires.rnaseq.MultiIsoformRegion> getRegionMap()
+    public HashMap<String, MultiIsoformRegion> getRegionMap()
     {
         return regions;
     }
 
-    public empires.rnaseq.MultiIsoformRegion getRegionById(String id)
+    public MultiIsoformRegion getRegionById(String id)
     {
         return regions.get(id);
     }

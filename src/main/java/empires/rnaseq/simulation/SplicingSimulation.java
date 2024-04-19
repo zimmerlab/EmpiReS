@@ -1,11 +1,12 @@
-package empires.rnaseq.simulation;
+package nlEmpiRe.rnaseq.simulation;
 
 import lmu.utils.*;
-import empires.input.RNASeqSplicingInfo;
-import empires.input.ReplicateSetInfo;
-import empires.rnaseq.IsoformRegionGetter;
-import empires.rnaseq.MultiIsoformRegion;
-import empires.test.rnaseq.SimulationConfiguration;
+import nlEmpiRe.input.RNASeqSplicingInfo;
+import nlEmpiRe.input.ReplicateSetInfo;
+import nlEmpiRe.rnaseq.IsoformRegionGetter;
+import nlEmpiRe.rnaseq.MultiIsoformRegion;
+import nlEmpiRe.test.rnaseq.SimulationConfiguration;
+import org.apache.commons.math3.distribution.NormalDistribution;
 
 import java.io.File;
 import java.util.*;
@@ -14,6 +15,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class SplicingSimulation {
 
@@ -24,14 +26,14 @@ public class SplicingSimulation {
     SimulationConfiguration configuration = new SimulationConfiguration();
 
 
-    Vector<empires.rnaseq.simulation.SimulatedSplicingCondition> conditions;
+    Vector<SimulatedSplicingCondition> conditions;
     HashMap<String, MultiIsoformRegion> simulatedGenes = new HashMap<>();
     HashMap<String, SplicingSimulatedGene> simulatedGeneCounts = new HashMap<>();
 
     Vector<ReplicateSetInfo> replicateSetInfos = null;
 
 
-    int readLength = 100;
+    int readLength = 75;
     IsoformRegionGetter annot;
     double factor;
 
@@ -53,7 +55,7 @@ public class SplicingSimulation {
     }
 
     public void setConditions(Vector<String> conditionNames) {
-        conditions = map(conditionNames, (_cn) -> new empires.rnaseq.simulation.SimulatedSplicingCondition(_cn));
+        conditions = map(conditionNames, (_cn) -> new SimulatedSplicingCondition(_cn));
     }
 
     public void addSimulation(int conditionIdx, int replicateIdx, TranscriptSimulation transcriptSimulation) {
@@ -61,7 +63,7 @@ public class SplicingSimulation {
             throw new FRuntimeException("invalid operation, set conditions first!");
 
         simulatedGenes.put(transcriptSimulation.gene.id, transcriptSimulation.gene);
-        empires.rnaseq.simulation.SimulatedSplicingCondition target = conditions.get(conditionIdx);
+        SimulatedSplicingCondition target = conditions.get(conditionIdx);
         while(target.replicates.size() <= replicateIdx) {
             target.replicates.add(new HashMap<>());
         }
@@ -116,7 +118,7 @@ public class SplicingSimulation {
 
     }
 
-    Vector<TranscriptSimulation> getSimulatedCounts(empires.rnaseq.simulation.SimulatedSplicingCondition condition, MultiIsoformRegion gene) {
+    Vector<TranscriptSimulation> getSimulatedCounts(SimulatedSplicingCondition condition, MultiIsoformRegion gene) {
 
         return map(condition.replicates, (_m) -> _m.get(gene));
     }
@@ -127,7 +129,7 @@ public class SplicingSimulation {
             return null;
 
         Vector<Vector<Integer>> counts = new Vector<>();
-        for(empires.rnaseq.simulation.SimulatedSplicingCondition cond : conditions) {
+        for(SimulatedSplicingCondition cond : conditions) {
             counts.add(map(cond.replicates, (_m) -> _m.get(gene).getCountToSimulate(trId)));
         }
         return counts;
@@ -140,7 +142,7 @@ public class SplicingSimulation {
             return null;
 
         HashSet<String> simulatedTranscripts = new HashSet<>();
-        for(empires.rnaseq.simulation.SimulatedSplicingCondition ssc : conditions) {
+        for(SimulatedSplicingCondition ssc : conditions) {
             for(HashMap<MultiIsoformRegion, TranscriptSimulation> m : ssc.replicates) {
                 TranscriptSimulation ts = m.get(gene);
                 if(ts == null)
@@ -164,7 +166,7 @@ public class SplicingSimulation {
 
         HashMap<String, Vector<String>> cond2replicateNames = new HashMap<>();
 
-        for(empires.rnaseq.simulation.SimulatedSplicingCondition simulatedSplicingCondition: conditions) {
+        for(SimulatedSplicingCondition simulatedSplicingCondition: conditions) {
             Vector<String> names = mapIndex(simulatedSplicingCondition.replicates.size(), (_i) -> String.format("rep%d", _i + 1));
             cond2replicateNames.put(simulatedSplicingCondition.condition, names);
         }
@@ -206,7 +208,7 @@ public class SplicingSimulation {
         return simulatedGenes.keySet();
     }
 
-    public empires.rnaseq.simulation.SimulatedSplicingCondition getCondition(int idx) {
+    public SimulatedSplicingCondition getCondition(int idx) {
         return conditions.get(idx);
     }
 

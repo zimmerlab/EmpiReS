@@ -1,23 +1,23 @@
-package empires.release;
+package nlEmpiRe.release;
 
 import lmu.utils.DataTable;
 import lmu.utils.NumUtils;
 import lmu.utils.OptionParser;
 import lmu.utils.SimpleOptionParser;
-import empires.BackgroundContextFuzzficationStrategyProvider;
-import empires.DiffExpResult;
-import empires.EmpiRe;
-import empires.NormalizedReplicateSet;
-import empires.input.BackgroundProviderOption;
-import empires.input.GeneralOptions;
-import empires.input.ReplicateSetInfo;
+import nlEmpiRe.BackgroundContextFuzzficationStrategyProvider;
+import nlEmpiRe.DiffExpResult;
+import nlEmpiRe.EmpiRe;
+import nlEmpiRe.NormalizedReplicateSet;
+import nlEmpiRe.input.BackgroundProviderOption;
+import nlEmpiRe.input.GeneralOptions;
+import nlEmpiRe.input.ReplicateSetInfo;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Vector;
 
 import static lmu.utils.ObjectGetter.toVector;
-import static empires.input.ExpressionSet.readDataGroupedByCondition;
+import static nlEmpiRe.input.ExpressionSet.readDataGroupedByCondition;
 
 public class DiffExpOnExpressionSet {
 

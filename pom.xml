@@ -30,15 +30,47 @@
         </dependency>
 
         <dependency>
-            <groupId>de.lmu</groupId>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>LATEST</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.beanshell/bsh -->
+        <dependency>
+            <groupId>org.beanshell</groupId>
+            <artifactId>bsh</artifactId>
+            <version>2.0b5</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/net.sourceforge.javacsv/javacsv -->
+        <dependency>
+            <groupId>net.sourceforge.javacsv</groupId>
+            <artifactId>javacsv</artifactId>
+            <version>2.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.zimmerlab</groupId>
             <artifactId>lmuutils</artifactId>
             <version>1.0</version>
+				<scope>system</scope>
+				<systemPath>${basedir}/lib/lmuutils.jar</systemPath>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.zimmerlab</groupId>
+            <artifactId>AugmentedTree</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/AugmentedTree.jar</systemPath>
         </dependency>
 
         <dependency>
             <groupId>net.sf</groupId>
             <artifactId>samtools</artifactId>
             <version>1.77</version>
+				<scope>system</scope>
+				<systemPath>${basedir}/lib/sam-1.77.jar</systemPath>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.jdom/jdom -->
@@ -47,8 +79,6 @@
             <artifactId>jdom</artifactId>
             <version>2.0.2</version>
         </dependency>
-
-
 
         <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
         <dependency>

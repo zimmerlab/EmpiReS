@@ -1,7 +1,7 @@
-package empires.rnaseq.reads;
+package nlEmpiRe.rnaseq.reads;
 
 
-import empires.rnaseq.MultiIsoformRegion;
+import nlEmpiRe.rnaseq.*;
 import lmu.utils.*;
 import lmu.utils.tuple.Tuple3;
 
@@ -9,9 +9,9 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class TranscriptEQClassWriter {
 
@@ -26,7 +26,6 @@ public class TranscriptEQClassWriter {
 
     HashMap<Tuple, DownSampleVector> counts = new HashMap<>();
 
-    empires.rnaseq.IsoformRegionGetter irg;
     int nonTranscript = 0;
     int nTranscript = 0;
     ObjectGetter.MapGetter<Integer, Double> downsampler = (_d) -> (_d == null) ? 0 : NumUtils.logN(_d + 1, 2.0);
@@ -35,12 +34,11 @@ public class TranscriptEQClassWriter {
     DownSampleVector EMPTY;
 
     String lastchr = null;
-    TranscriptEQClassWriter(empires.rnaseq.IsoformRegionGetter irg, Vector<String> ids, PrintWriter pw) {
+    TranscriptEQClassWriter(IsoformRegionGetter irg, Vector<String> ids, PrintWriter pw) {
         this.pw = pw;
         this.ids = ids;
         id2idx = buildIndexMap(this.ids);
         EMPTY = new DownSampleVector(ids.size());
-        this.irg = irg;
     }
 
     String downsample2str(DownSampleVector dsv) {
@@ -134,9 +132,6 @@ public class TranscriptEQClassWriter {
         log.info("will write %d genes for chr %s\n", gene2tuple.size(), lastchr);
         for(String gene : gene2tuple.keySet()) {
 
-            //Armin
-            RegionVector merged = RegionVector.merge(irg.getRegionById(gene).isoforms.values());
-
             Vector<Tuple> eqClasses = gene2tuple.get(gene);
             DownSampleVector Tdsv = new DownSampleVector(ids.size());
             apply(eqClasses, (_t) -> Tdsv.update(counts.get(_t)));
@@ -151,35 +146,7 @@ public class TranscriptEQClassWriter {
 
             for(Tuple t : eqClasses) {
                 DownSampleVector dsv = counts.get(t);
-//                pw.printf(">%s\t%s\n", gene, StringUtils.joinObjects(",", mapIndex(t.cardinality(), (_i) -> t.getAsString(_i))));
-
-                //Armin
-                List<String> tr_names = Arrays.stream(t.values()).map(Object::toString).collect(Collectors.toList());
-                Set<String> other_names = new HashSet<>(irg.getRegionById(gene).isoforms.keySet());
-                other_names.removeAll(tr_names);
-                List<RegionVector> test = tr_names.stream().map(_tr -> irg.getRegionById(gene).isoforms.get(_tr)).collect(Collectors.toList());
-                RegionVector intersect = test.get(0);
-                for (RegionVector rv : test) {
-                    intersect = intersect.intersect(rv);
-                }
-
-                RegionVector regions = new RegionVector(intersect);
-
-//                RegionVector regions = RegionVector.merge(test);
-                RegionVector to_remove = RegionVector.merge(other_names.stream().map(_tr -> irg.getRegionById(gene).isoforms.get(_tr)).collect(Collectors.toList()));
-
-                if (other_names.size() > 0) {
-                    regions = regions.substract(to_remove);
-//                    regions = RegionVector.convertToInner(merged, irg.getRegionById(gene).strand, regions.substract(to_remove));
-                }
-//                else {
-//                    regions = RegionVector.convertToInner(merged, irg.getRegionById(gene).strand, regions);
-//                }
-                pw.printf(">%s\t%s;%s\n", gene, StringUtils.joinObjects(",", mapIndex(t.cardinality(), (_i) -> t.getAsString(_i))), StringUtils.joinObjects("", regions.getRegions()));
-
-//                if (gene.equals("ENSG00000143842")) {
-//                    System.out.printf(">%s\t%s;%s\n", gene, StringUtils.joinObjects(",", mapIndex(t.cardinality(), (_i) -> t.getAsString(_i))), StringUtils.joinObjects("", regions.getRegions()));;
-//                }
+                pw.printf(">%s\t%s\n", gene, StringUtils.joinObjects(",", mapIndex(t.cardinality(), (_i) -> t.getAsString(_i))));
                 apply(DSvariants, (_p) ->
                 {
                     double[] d = _p.getSecond().apply(dsv);
@@ -266,7 +233,7 @@ public class TranscriptEQClassWriter {
 
         Logger log = LogConfig.getLogger();
         long t1 = System.currentTimeMillis();
-        empires.rnaseq.IsoformRegionGetter irg = new empires.rnaseq.GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null);
+        IsoformRegionGetter irg = new GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null);
         BAMIterator.NO_PCR_DOWNSAMPLING = true;
         BAMIterator<String> bam = new BAMIterator<>(irg);
         DataTable dt = DataTable.readFile(cmd.getFile("table"), "\t");

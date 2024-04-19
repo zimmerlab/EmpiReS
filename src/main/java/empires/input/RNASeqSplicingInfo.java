@@ -1,9 +1,10 @@
-package empires.input;
+package nlEmpiRe.input;
 
-import empires.rnaseq.ReducedTranscriptPresentation;
-import empires.rnaseq.TranscriptPairInfo;
+import org.apache.logging.log4j.Logger;
 import lmu.utils.*;
 import lmu.utils.tuple.Tuple3;
+import nlEmpiRe.rnaseq.ReducedTranscriptPresentation;
+import nlEmpiRe.rnaseq.TranscriptPairInfo;
 
 import java.util.*;
 
@@ -17,14 +18,9 @@ public class RNASeqSplicingInfo {
     int minCountIntMaxCountCondition = 0;
 
 
-    HashMap<String, empires.rnaseq.ReducedTranscriptPresentation> gene2transcriptInfo = new HashMap<>();
-    HashMap<String, Vector<empires.rnaseq.TranscriptPairInfo>> gene2pairtests = new HashMap<>();
+    HashMap<String, ReducedTranscriptPresentation> gene2transcriptInfo = new HashMap<>();
+    HashMap<String, Vector<TranscriptPairInfo>> gene2pairtests = new HashMap<>();
     HashMap<String, Vector<Pair<Tuple, String>>> gene2EQClassFeature = new HashMap<>();
-
-    public HashMap<String, Vector<Pair<Tuple, String>>> getGene2EQClassFeature() {
-        return gene2EQClassFeature;
-    }
-
     Vector<String> genesForSplicingTesting = new Vector<>();
     Vector<String> allGenes = new Vector<>();
 
@@ -39,8 +35,8 @@ public class RNASeqSplicingInfo {
     HashMap<String, Integer> feature2Idx;
 
 
-    HashMap<String, empires.input.ReplicateSetInfo> replicateSetNameLookup = null;
-    Vector<empires.input.ReplicateSetInfo> replicateSetInfos = null;
+    HashMap<String, ReplicateSetInfo> replicateSetNameLookup = null;
+    Vector<ReplicateSetInfo> replicateSetInfos = null;
 
     private RNASeqSplicingInfo() {
 
@@ -117,7 +113,7 @@ public class RNASeqSplicingInfo {
             restricted.allGeneFeatureNames.addAll(map(restrictedUsedFeatures, (_p) -> _p.getSecond()));
             restricted.eqClasses.addAll(map(restrictedUsedFeatures, (_p) -> _p.getFirst()));
 
-            Vector<empires.rnaseq.TranscriptPairInfo> toTest = empires.rnaseq.TranscriptPairInfo.getTrPairInfos(restrictedUsedFeatures);
+            Vector<TranscriptPairInfo> toTest = TranscriptPairInfo.getTrPairInfos(restrictedUsedFeatures);
             if(toTest.size() > 0 ){
                 restricted.genesForSplicingTesting.add(geneId);
                 restricted.gene2pairtests.put(geneId, toTest);
@@ -174,7 +170,7 @@ public class RNASeqSplicingInfo {
                 }
             }
         }
-        empires.rnaseq.ReducedTranscriptPresentation rtp = new empires.rnaseq.ReducedTranscriptPresentation(merged, MAX_TR_NUM);
+        ReducedTranscriptPresentation rtp = new ReducedTranscriptPresentation(merged, MAX_TR_NUM);
 
         int numFeatures = rtp.getNumRestrictedEQClasses();
 
@@ -235,7 +231,7 @@ public class RNASeqSplicingInfo {
         allGeneFeatureNames.addAll(map(usedFeatures, (_p) -> _p.getSecond()));
         eqClasses.addAll(map(usedFeatures, (_p) -> _p.getFirst()));
 
-        Vector<empires.rnaseq.TranscriptPairInfo> toTest = empires.rnaseq.TranscriptPairInfo.getTrPairInfos(usedFeatures);
+        Vector<TranscriptPairInfo> toTest = TranscriptPairInfo.getTrPairInfos(usedFeatures);
 
         //check for min counts!!!
 
@@ -255,7 +251,7 @@ public class RNASeqSplicingInfo {
     public int getNumFeatures(String gene) {
         return gene2EQClassFeature.getOrDefault(gene, EMPTYV).size();
     }
-    public Collection<empires.input.ReplicateSetInfo> getReplicateSetInfos() {
+    public Collection<ReplicateSetInfo> getReplicateSetInfos() {
         return compile();
     }
 
@@ -273,7 +269,7 @@ public class RNASeqSplicingInfo {
         return genesForSplicingTesting;
     }
 
-    private Collection<empires.input.ReplicateSetInfo> compile() {
+    private Collection<ReplicateSetInfo> compile() {
         if(replicateSetInfos != null)
             return replicateSetInfos;
 
@@ -285,7 +281,7 @@ public class RNASeqSplicingInfo {
         HashMap<String, Vector<String>> gene2featureIds = buildMap(gene2EQClassFeature.entrySet(), (_e) -> _e.getKey(), (_e) -> map(_e.getValue(), (_p) -> _p.getSecond()));
         for(String cond : condition2replicatenames.keySet()) {
             Vector<String> repNames = condition2replicatenames.get(cond);
-            empires.input.ReplicateSetInfo rsi = new empires.input.ReplicateSetInfo(cond, repNames, allGeneFeatureNames);
+            ReplicateSetInfo rsi = new ReplicateSetInfo(cond, repNames, allGeneFeatureNames);
             Vector<Vector<Double>> repLog2Data = cond2replicate2featureLogData.get(cond);
 
             for(int i=0; i<repLog2Data.size(); i++) {
@@ -338,13 +334,13 @@ public class RNASeqSplicingInfo {
     }
 
     public Vector<Tuple3<String, Vector<String>, Vector<String>>> getTrPairTestFeatureCombiTests(String gene, String tr1, String tr2, String cond1, String cond2, StringBuffer err) {
-        Vector<empires.rnaseq.TranscriptPairInfo> pairTests = gene2pairtests.get(gene);
+        Vector<TranscriptPairInfo> pairTests = gene2pairtests.get(gene);
         if(pairTests == null || pairTests.size() == 0) {
             err.append("no pair tests found for gene");
             return null;
         }
 
-        empires.rnaseq.ReducedTranscriptPresentation rtp = gene2transcriptInfo.get(gene);
+        ReducedTranscriptPresentation rtp = gene2transcriptInfo.get(gene);
 
         if(rtp == null) {
             err.append("missing reduced transcript presentation");
@@ -369,7 +365,7 @@ public class RNASeqSplicingInfo {
             return null;
         }
         UPair<String> tocheck = UPair.createUSorted(leadTr1, leadTr2);
-        empires.rnaseq.TranscriptPairInfo tpi = filterOne(pairTests, (_p) -> tocheck.equals(UPair.createUSorted(_p.tr1, _p.tr2)));
+        TranscriptPairInfo tpi = filterOne(pairTests, (_p) -> tocheck.equals(UPair.createUSorted(_p.tr1, _p.tr2)));
         if(tpi == null) {
             err.append("no transcript pair test found");
             return null;
@@ -402,7 +398,7 @@ public class RNASeqSplicingInfo {
             return featureCombisToTest;
 
 
-        Vector<empires.rnaseq.TranscriptPairInfo> pairTests = gene2pairtests.get(gene);
+        Vector<TranscriptPairInfo> pairTests = gene2pairtests.get(gene);
         if(pairTests == null || pairTests.size() == 0)
             return featureCombisToTest;
 
@@ -425,6 +421,7 @@ public class RNASeqSplicingInfo {
 
         return featureCombisToTest;
     }
+
 
     public int getMinCountLevelForCoveragePercentage(String cond, int percentage) {
 

@@ -1,9 +1,9 @@
-package empires.rnaseq.mapping;
+package nlEmpiRe.rnaseq.mapping;
 
 import lmu.utils.Region1D;
 
 public class TranscriptHit {
-    empires.rnaseq.mapping.TranscriptInfo transcriptInfo;
+    TranscriptInfo transcriptInfo;
     Region1D fragment;
     int numMismatches;
 

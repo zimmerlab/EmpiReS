@@ -1,7 +1,7 @@
-package empires;
+package nlEmpiRe;
 
-import empires.input.ReplicateSetInfo;
 import lmu.utils.*;
+import nlEmpiRe.input.ReplicateSetInfo;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -9,6 +9,7 @@ import java.util.*;
 
 import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 /** describes a set of replicate measurement referring to the same phenotype (a.k.a "a condition")
  *
@@ -18,7 +19,7 @@ public class NormalizedReplicateSet {
 
 
     Logger log = LogConfig.getLogger();
-    empires.input.ReplicateSetInfo inData;
+    ReplicateSetInfo inData;
     Vector<Double> shifts;
     HashMap<Integer, ReplicatedMeasurement> featureIdx2Normalized;
     Vector<ErrorEstimationDistribution> errorBackGrounds = null;
@@ -31,13 +32,13 @@ public class NormalizedReplicateSet {
     ReplicatedMeasurement nonMeasuredFeature;
 
 
-    public NormalizedReplicateSet(empires.input.ReplicateSetInfo ci) {
+    public NormalizedReplicateSet(ReplicateSetInfo ci) {
         this(ci, new AutoBackGroundContextProvider());
     }
-    public NormalizedReplicateSet(empires.input.ReplicateSetInfo ci, BackgroundContextFuzzficationStrategyProvider contextFuzzficationStrategyProvider) {
+    public NormalizedReplicateSet(ReplicateSetInfo ci, BackgroundContextFuzzficationStrategyProvider contextFuzzficationStrategyProvider) {
         this(ci, contextFuzzficationStrategyProvider, false);
     }
-    public NormalizedReplicateSet(empires.input.ReplicateSetInfo ci, BackgroundContextFuzzficationStrategyProvider contextFuzzficationStrategyProvider, boolean noErrorIfSingleReplicate) {
+    public NormalizedReplicateSet(ReplicateSetInfo ci, BackgroundContextFuzzficationStrategyProvider contextFuzzficationStrategyProvider, boolean noErrorIfSingleReplicate) {
         inData = ci;
         nonMeasuredFeature = new ReplicatedMeasurement(-1, ci.getNumReplicates());
         try {

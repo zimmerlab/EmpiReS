@@ -1,6 +1,7 @@
-package empires;
+package nlEmpiRe;
 
 import lmu.utils.EnumGetter;
+import nlEmpiRe.rnaseq.SplicingTest;
 
 public enum DoubleDiffVariant {
     QUICK_AND_DIRTY("quickanddirty"),

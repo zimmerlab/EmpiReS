@@ -1,13 +1,17 @@
-package empires.rnaseq.simulation;
+package nlEmpiRe.rnaseq.simulation;
 
 import lmu.utils.*;
-import empires.rnaseq.IsoformRegionGetter;
-import empires.rnaseq.MultiIsoformRegion;
+import nlEmpiRe.rnaseq.IsoformRegionGetter;
+import nlEmpiRe.rnaseq.MultiIsoformRegion;
+import org.apache.commons.math3.distribution.NormalDistribution;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 import java.util.function.Consumer;
+
+import static lmu.utils.ObjectGetter.*;
 
 public class TranscriptSimulation
 {
@@ -26,12 +30,12 @@ public class TranscriptSimulation
         return ""+ isoform2count;
     }
 
-    public HashMap<Tuple, Double> simulateTrSetCounts(empires.rnaseq.simulation.PositionBiasFactory positionBiasFactory) {
+    public HashMap<Tuple, Double> simulateTrSetCounts(PositionBiasFactory positionBiasFactory) {
         return simulateTrSetCounts(positionBiasFactory, null);
     }
 
 
-    public HashMap<Tuple, Double> simulateTrSetCounts(empires.rnaseq.simulation.PositionBiasFactory positionBiasFactory, Consumer<SimulatedRead> externConsumer) {
+    public HashMap<Tuple, Double> simulateTrSetCounts(PositionBiasFactory positionBiasFactory, Consumer<nlEmpiRe.rnaseq.simulation.SimulatedRead> externConsumer) {
 
         HashMap<Tuple, Double> rv = new HashMap<>();
         simulate(positionBiasFactory,
@@ -53,7 +57,7 @@ public class TranscriptSimulation
         return isoform2count.get(transcriptId);
     }
 
-    public void simulate(PositionBiasFactory positionBiasFactory, Consumer<SimulatedRead> readConsumer) {
+    public void simulate(PositionBiasFactory positionBiasFactory, Consumer<nlEmpiRe.rnaseq.simulation.SimulatedRead> readConsumer) {
         for(String transcriptId : isoform2count.keySet()) {
             int count = isoform2count.get(transcriptId);
             if(count == 0)
@@ -66,7 +70,10 @@ public class TranscriptSimulation
     public static HashMap<MultiIsoformRegion, TranscriptSimulation>  groupTranscriptsPerGene(Iterable<Pair<String, Integer>> transcript2count, IsoformRegionGetter annot) {
         HashMap<String, String> transcript2Gene = new HashMap<>();
         apply(annot.getRegions(), (_r) -> apply(_r.isoforms.keySet(), (_isoform) -> transcript2Gene.put(_isoform, _r.id)));
-
+        Vector<String> missing = map_and_filter(transcript2count.iterator(), (_p) -> _p.getFirst(), (_t) -> transcript2Gene.get(_t) == null);
+        if (missing.size() > 0) {
+            throw new RuntimeException(String.format("unmappable transcripts: %s", missing));
+        }
         HashMap<String, HashMap<String, Integer>> gene2isoforms = new HashMap<>();
 
         apply(transcript2count.iterator(), (_p) -> gene2isoforms.computeIfAbsent(transcript2Gene.get(_p.getFirst()), (_g) -> new HashMap<>()).put(_p.getFirst(), _p.getSecond()));

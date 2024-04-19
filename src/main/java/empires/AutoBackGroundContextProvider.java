@@ -1,4 +1,4 @@
-package empires;
+package nlEmpiRe;
 
 import lmu.utils.*;
 import lmu.utils.tuple.Tuple3;
@@ -9,6 +9,7 @@ import java.util.*;
 import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
 import static lmu.utils.ObjectGetter.apply;
+import org.apache.logging.log4j.Logger;
 
 public class AutoBackGroundContextProvider implements BackgroundContextFuzzficationStrategyProvider {
     Logger log = LogConfig.getLogger();

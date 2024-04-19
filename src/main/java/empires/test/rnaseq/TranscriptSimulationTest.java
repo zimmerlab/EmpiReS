@@ -1,21 +1,21 @@
-package empires.test.rnaseq;
+package nlEmpiRe.test.rnaseq;
 
 
-
-import empires.EmpiRe;
-import empires.input.DSType;
-import empires.input.EQClassInput;
-import empires.input.ExperimentDescriptor;
-import empires.input.RNASeqSplicingInfo;
-import empires.rnaseq.GFFBasedIsoformRegionGetter;
-import empires.rnaseq.simulation.*;
 import lmu.utils.*;
 import lmu.utils.fdr.PerformanceResult;
 import lmu.utils.plotting.*;
 import lmu.utils.swing.PagedDataTable;
 import lmu.utils.tuple.Tuple3;
+import nlEmpiRe.*;
+import nlEmpiRe.input.DSType;
+import nlEmpiRe.input.EQClassInput;
+import nlEmpiRe.input.ExperimentDescriptor;
+import nlEmpiRe.input.RNASeqSplicingInfo;
 import lmu.utils.plotting.CachedPlotCreator;
-import empires.rnaseq.simulation.TranscriptSimulation;
+import nlEmpiRe.rnaseq.*;
+import nlEmpiRe.rnaseq.simulation.PositionBiasFactory;
+import nlEmpiRe.rnaseq.simulation.SplicingSimulation;
+import nlEmpiRe.rnaseq.simulation.TranscriptSimulation;
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +29,7 @@ import java.util.function.Function;
 import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.apache.logging.log4j.Logger;
 
 
 class TranscriptSimulationTest {
@@ -39,28 +40,28 @@ class TranscriptSimulationTest {
     static final File TRUE_SPLICING = new File(SIMULATION_BASE, "trueSplic.txt");
     static final File TRUE_DIFFEXP = new File(SIMULATION_BASE, "trueDiffexp.txt");
     static final File HUMAN_GTF = new File(SIMULATION_BASE, "Homo_sapiens.GRCh37.75.gtf");
-    static empires.rnaseq.IsoformRegionGetter HUMAN_IRG = null;
+    static IsoformRegionGetter HUMAN_IRG = null;
 
-    public static empires.rnaseq.IsoformRegionGetter getHumanAnnot() {
+    public static IsoformRegionGetter getHumanAnnot() {
         if(HUMAN_IRG != null)
             return HUMAN_IRG;
 
-        return HUMAN_IRG = new empires.rnaseq.GFFBasedIsoformRegionGetter(HUMAN_GTF, null, null);
+        return HUMAN_IRG = new GFFBasedIsoformRegionGetter(HUMAN_GTF, null, null);
     }
 
     @Test
     void singleTranscriptSimulationTest() {
-        empires.rnaseq.IsoformRegionGetter irg = getHumanAnnot();
-        HashMap<empires.rnaseq.MultiIsoformRegion, empires.rnaseq.simulation.TranscriptSimulation> simulMap = TranscriptSimulation.groupTranscriptsPerGene(toVector(Pair.create("ENST00000334267", 1000)), irg);
+        IsoformRegionGetter irg = getHumanAnnot();
+        HashMap<MultiIsoformRegion, nlEmpiRe.rnaseq.simulation.TranscriptSimulation> simulMap = nlEmpiRe.rnaseq.simulation.TranscriptSimulation.groupTranscriptsPerGene(toVector(Pair.create("ENST00000334267", 1000)), irg);
 
-        empires.rnaseq.simulation.PositionBiasFactory biasFactory = new empires.rnaseq.simulation.PositionBiasFactory();
+        PositionBiasFactory biasFactory = new PositionBiasFactory();
 
-        Consumer<SimulatedRead> consumer = (_sr) -> {
+        Consumer<nlEmpiRe.rnaseq.simulation.SimulatedRead> consumer = (_sr) -> {
             System.out.printf("simul: %s trset: %s\n", _sr.transcriptId, _sr.mapsToTranscripts);
             assert(_sr.mapsToTranscripts.contains(_sr.transcriptId));
         };
 
-        for(empires.rnaseq.simulation.TranscriptSimulation simulation : simulMap.values()) {
+        for(nlEmpiRe.rnaseq.simulation.TranscriptSimulation simulation : simulMap.values()) {
             simulation.simulate(biasFactory, consumer);
         }
     }
@@ -80,10 +81,10 @@ class TranscriptSimulationTest {
 
     @Test
     void transcriptPairSimulationTest() {
-        empires.rnaseq.IsoformRegionGetter irg = getHumanAnnot();
-        HashMap<empires.rnaseq.MultiIsoformRegion, empires.rnaseq.simulation.TranscriptSimulation> simulMap = empires.rnaseq.simulation.TranscriptSimulation.groupTranscriptsPerGene(toVector(Pair.create("ENST00000334267", 1000)), irg);
+        IsoformRegionGetter irg = getHumanAnnot();
+        HashMap<MultiIsoformRegion, nlEmpiRe.rnaseq.simulation.TranscriptSimulation> simulMap = nlEmpiRe.rnaseq.simulation.TranscriptSimulation.groupTranscriptsPerGene(toVector(Pair.create("ENST00000334267", 1000)), irg);
 
-        empires.rnaseq.simulation.SplicingSimulation splicingSimulation = new empires.rnaseq.simulation.SplicingSimulation(irg);
+        nlEmpiRe.rnaseq.simulation.SplicingSimulation splicingSimulation = new nlEmpiRe.rnaseq.simulation.SplicingSimulation(irg);
         splicingSimulation.setConditions(toVector("1", "2"));
 
         Vector<Tuple3<String, Pair<String, int[][]>, Pair<String, int[][]>>> toSimulate = toVector(
@@ -96,7 +97,7 @@ class TranscriptSimulationTest {
 
         for(Tuple3<String, Pair<String, int[][]>, Pair<String, int[][]>> gene2tpairWithCounts : toSimulate) {
             String geneId = gene2tpairWithCounts.get0();
-            empires.rnaseq.MultiIsoformRegion gene = irg.getRegionById(geneId);
+            MultiIsoformRegion gene = irg.getRegionById(geneId);
 
             Pair<String, int[][]> tr1ToCounts = gene2tpairWithCounts.get1();
             Pair<String, int[][]> tr2ToCounts = gene2tpairWithCounts.get2();
@@ -113,7 +114,7 @@ class TranscriptSimulationTest {
                     counts.put(tr1ToCounts.getFirst(), tr1counts[repIdx]);
                     counts.put(tr2ToCounts.getFirst(), tr2counts[repIdx]);
                     System.out.printf("cond: %d rep: %d counts : %s\n", cond, repIdx, counts);
-                    empires.rnaseq.simulation.TranscriptSimulation ts = new empires.rnaseq.simulation.TranscriptSimulation(gene, counts);
+                    nlEmpiRe.rnaseq.simulation.TranscriptSimulation ts = new nlEmpiRe.rnaseq.simulation.TranscriptSimulation(gene, counts);
                     splicingSimulation.addSimulation(cond, repIdx, ts);
                 }
             }
@@ -144,24 +145,24 @@ class TranscriptSimulationTest {
                 {"ENSG00000132361", "ENST00000435359", "ENST00000574426"}
         };
 
-        empires.rnaseq.IsoformRegionGetter irg = getHumanAnnot();
+        IsoformRegionGetter irg = getHumanAnnot();
 
         NormalDistribution nd = new NormalDistribution(200, 60);
 
-        empires.rnaseq.simulation.PositionBiasFactory biasFactory = new empires.rnaseq.simulation.PositionBiasFactory();
+        PositionBiasFactory biasFactory = new PositionBiasFactory();
 
         for(int i=0; i<gene2tr.length; i++) {
-            empires.rnaseq.MultiIsoformRegion gene = irg.getRegionById(gene2tr[i][0]);
+            MultiIsoformRegion gene = irg.getRegionById(gene2tr[i][0]);
 
 
             HashMap<String, Integer> tr2count = new HashMap<>();
             for(int trIdx=1; trIdx<=2; trIdx++) {
                 tr2count.put(gene2tr[i][trIdx], (trIdx == 1) ? 100 : 30 );
             }
-            empires.rnaseq.simulation.TranscriptSimulation trs = new empires.rnaseq.simulation.TranscriptSimulation(gene, tr2count);
+            nlEmpiRe.rnaseq.simulation.TranscriptSimulation trs = new nlEmpiRe.rnaseq.simulation.TranscriptSimulation(gene, tr2count);
             HashMap<Tuple, Double> eqClasses = trs.simulateTrSetCounts(biasFactory);
 
-            empires.rnaseq.ReducedTranscriptPresentation rtp = new empires.rnaseq.ReducedTranscriptPresentation(eqClasses);
+            ReducedTranscriptPresentation rtp = new ReducedTranscriptPresentation(eqClasses);
 
             Vector<String> trKeys = toSortedVector(tr2count.keySet(), true);
 
@@ -245,25 +246,25 @@ class TranscriptSimulationTest {
     static PerformanceResult benchmark(boolean doPlot, SimulationConfiguration config, File trcounts, int MAXTRCOUNT, File trueLabels, double RAW_PSEUDO, double MULTIPLICATIVE_FACTOR_ON_COUNTS) {
         Logger log = LogConfig.getLogger();
         log.info("init simulations");
-        empires.rnaseq.simulation.SplicingSimulation simulation = new empires.rnaseq.simulation.SplicingSimulation(config, trcounts, MULTIPLICATIVE_FACTOR_ON_COUNTS);
+        nlEmpiRe.rnaseq.simulation.SplicingSimulation simulation = new nlEmpiRe.rnaseq.simulation.SplicingSimulation(config, trcounts, MULTIPLICATIVE_FACTOR_ON_COUNTS);
 
         log.info("start simulations");
         long t1 = System.currentTimeMillis();
-        empires.input.RNASeqSplicingInfo rsi = simulation.simulate(MAXTRCOUNT, 1.0, 3);
+        RNASeqSplicingInfo rsi = simulation.simulate(MAXTRCOUNT, 1.0, 3);
         long t2 = System.currentTimeMillis();
         long simul_time = t2 - t1;
         log.info("setup splicing tests took: %.2f sec", simul_time / 1000.0);
-        empires.rnaseq.SplicingTest test = new empires.rnaseq.SplicingTest(rsi, new empires.AutoBackGroundContextProvider());
+        SplicingTest test = new SplicingTest(rsi, new AutoBackGroundContextProvider());
         Vector<String> conditions = test.getConditions();
 
         log.info("calc splicing conditions: %s", conditions);
         t1 = System.currentTimeMillis();
-        UPair<Vector<empires.DoubleDiffResult>> splicingPair = test.getDifferentialAlternativeSplicing(conditions.get(0), conditions.get(1));
-        Vector<empires.DoubleDiffResult> splicing = splicingPair.getFirst();
+        UPair<Vector<DoubleDiffResult>> splicingPair = test.getDifferentialAlternativeSplicing(conditions.get(0), conditions.get(1));
+        Vector<DoubleDiffResult> splicing = splicingPair.getFirst();
         t2 = System.currentTimeMillis();
         long DAS_test_time = t2 - t1;
         HashSet<String> trueGenes = FileUtils.readSet(trueLabels);
-        Function<empires.DoubleDiffResult, Boolean> trueLabeller = (_dr) -> trueGenes.contains(_dr.testName.split("\\.")[0]);
+        Function<DoubleDiffResult, Boolean> trueLabeller = (_dr) -> trueGenes.contains(_dr.testName.split("\\.")[0]);
 
         PerformanceResult pr = new PerformanceResult("nlEmpire", splicing, (_dr) -> _dr.pval, trueLabeller,
                     false, (_dr) -> _dr.fdr <= 0.05, null, false);
@@ -282,7 +283,7 @@ class TranscriptSimulationTest {
             mjf.addMenu("details", og ->
             {
                 BenchmarkGene bg = (BenchmarkGene)og.getInData();
-                empires.DoubleDiffResult ddr = bg.ddr;
+                DoubleDiffResult ddr = bg.ddr;
                 PlotCreator.BoxPlotBuilder bpb = ddr.drawSignalDistributionBoxPlots(CachedPlotCreator.getPlotCreator(), false);
                 BufferedImage diffSignal = bpb.plot();
 
@@ -315,11 +316,11 @@ class TranscriptSimulationTest {
 
     static void simulateReads(File trcounts, SimulationConfiguration simulationConfiguration) {
         Logger log = LogConfig.getLogger();
-        empires.rnaseq.simulation.SplicingSimulation simulation = new empires.rnaseq.simulation.SplicingSimulation(simulationConfiguration, trcounts);
+        nlEmpiRe.rnaseq.simulation.SplicingSimulation simulation = new nlEmpiRe.rnaseq.simulation.SplicingSimulation(simulationConfiguration, trcounts);
 
         Vector<Tuple3<String, String, Integer>> gene2tr2length = new Vector<>();
         for (String geneId : simulation.getSimulatedGenes()) {
-            empires.rnaseq.MultiIsoformRegion gene = simulationConfiguration.getAnnot().getRegionById(geneId);
+            MultiIsoformRegion gene = simulationConfiguration.getAnnot().getRegionById(geneId);
             for(String trId : simulation.getSimulatedTranscripts(geneId)) {
                 gene2tr2length.add(Tuple3.create(geneId,  trId, gene.isoforms.get(trId).getCoveredLength()));
             }
@@ -336,7 +337,7 @@ class TranscriptSimulationTest {
         }
 
         for (String geneId : simulation.getSimulatedGenes()) {
-            empires.rnaseq.MultiIsoformRegion gene = simulationConfiguration.getAnnot().getRegionById(geneId);
+            MultiIsoformRegion gene = simulationConfiguration.getAnnot().getRegionById(geneId);
             simulation.simulate(geneId, false, simulationConfiguration.getReadInReplicateConsumer());
         }
         simulationConfiguration.fastQGenerator.close();
@@ -344,7 +345,7 @@ class TranscriptSimulationTest {
 
     static class TestGeneInfo {
 
-        empires.rnaseq.MultiIsoformRegion gene;
+        MultiIsoformRegion gene;
 
         int numTranscripts = 0;
         Vector<String> transcripts;
@@ -360,7 +361,7 @@ class TranscriptSimulationTest {
         int getMaxCount(Vector<Vector<Integer>> cond2rep2counts) {
             return NumUtils.max(map(cond2rep2counts, (_r) -> NumUtils.max(_r)));
         }
-        public TestGeneInfo(empires.rnaseq.MultiIsoformRegion gene, empires.rnaseq.simulation.SplicingSimulation simulation, String cond1, String cond2, empires.input.RNASeqSplicingInfo rsi, Set<String> trues) {
+        public TestGeneInfo(MultiIsoformRegion gene, nlEmpiRe.rnaseq.simulation.SplicingSimulation simulation, String cond1, String cond2, RNASeqSplicingInfo rsi, Set<String> trues) {
             this.gene = gene;
 
 
@@ -403,7 +404,7 @@ class TranscriptSimulationTest {
             return DataTable.buildTable(
                     testGeneInfos,
                 DataTable.buildHeader("gene", (TestGeneInfo tgi) -> tgi.gene.id)
-                        .add("strand", t -> empires.rnaseq.GenomicUtils.getStrand(t.gene.strand))
+                        .add("strand", t -> GenomicUtils.getStrand(t.gene.strand))
 
                     .add("isTrue", t -> t.isTrue)
                     .add("num.annot.trans", t -> t.gene.isoforms.size())
@@ -423,12 +424,12 @@ class TranscriptSimulationTest {
     static void detailTestInfos(SimulationConfiguration config, File trcounts, int MAXTRCOUNT, Set<String> trues, File eqClassInputFile) {
         Logger log = LogConfig.getLogger();
         log.info("init simulations");
-        empires.rnaseq.simulation.SplicingSimulation simulation = new empires.rnaseq.simulation.SplicingSimulation(config, trcounts, 1.0);
+        nlEmpiRe.rnaseq.simulation.SplicingSimulation simulation = new nlEmpiRe.rnaseq.simulation.SplicingSimulation(config, trcounts, 1.0);
 
 
 
         int mincountInMaxCountCondition = 10;
-        empires.input.RNASeqSplicingInfo rsi = null;
+        RNASeqSplicingInfo rsi = null;
 
         if(eqClassInputFile != null && eqClassInputFile.exists()) {
             log.info("read in EQ-classes from %s", eqClassInputFile.getAbsolutePath());
@@ -437,7 +438,7 @@ class TranscriptSimulationTest {
             HashMap<String, Vector<String>> condition2replicatenames = new HashMap<>();
             Vector<String> replicatelist = new Vector<>();
             for(int i=0; i<simulation.getNumConditions(); i++) {
-                SimulatedSplicingCondition ssc = simulation.getCondition(i);
+                nlEmpiRe.rnaseq.simulation.SimulatedSplicingCondition ssc = simulation.getCondition(i);
                 int idx = i+1;
                 Vector<String> condreps = map(rangev(ssc.replicates.size()), (_i) -> ssc.condition +".rep"+ (_i+1));
                 condition2replicatenames.put(ssc.condition, condreps);
@@ -446,7 +447,7 @@ class TranscriptSimulationTest {
             System.out.printf("cond2reps: %s replist: %s\n", condition2replicatenames, replicatelist);
             rsi = new RNASeqSplicingInfo(10, 1.0,  condition2replicatenames);
 
-            empires.input.EQClassInput eqClassInput = new EQClassInput(rsi, new ExperimentDescriptor(condition2replicatenames, replicatelist, trues), DSType.READS, mincountInMaxCountCondition);
+            EQClassInput eqClassInput = new EQClassInput(rsi, new ExperimentDescriptor(condition2replicatenames, replicatelist, trues), DSType.READS, mincountInMaxCountCondition);
             eqClassInput.read(eqClassInputFile);
             long t2 = System.currentTimeMillis();
             long eqread_time = t2 - t1;
@@ -465,19 +466,19 @@ class TranscriptSimulationTest {
         }
 
 
-        empires.rnaseq.SplicingTest test = new empires.rnaseq.SplicingTest(rsi, new empires.AutoBackGroundContextProvider());
+        SplicingTest test = new SplicingTest(rsi, new AutoBackGroundContextProvider());
         Vector<String> conditions = test.getConditions();
 
         String cond1 = conditions.get(0);
         String cond2 = conditions.get(1);
 
-        empires.NormalizedReplicateSet rs1 = test.getNormalized(cond1);
-        empires.NormalizedReplicateSet rs2 = test.getNormalized(cond2);
+        NormalizedReplicateSet rs1 = test.getNormalized(cond1);
+        NormalizedReplicateSet rs2 = test.getNormalized(cond2);
 
 
-        empires.DoubleDiffManager diffManager = new EmpiRe().getDoubleDiffManager(rs1, rs2);
+        DoubleDiffManager diffManager = new EmpiRe().getDoubleDiffManager(rs1, rs2);
 
-        empires.DiffExpManager diffExpManager = diffManager.getDiffExpManager();
+        DiffExpManager diffExpManager = diffManager.getDiffExpManager();
         Vector<TestGeneInfo> testGeneInfos = new Vector<>();
 
         for(String g : rsi.getGenesForSplicingTest()) {
@@ -496,7 +497,7 @@ class TranscriptSimulationTest {
                 .addMenu("explain eqClass-reduction", (ObjectGetter og) ->
                 {
                     TestGeneInfo tgi = (TestGeneInfo)og.getInData();
-                    SplicingSimulatedGene sgi = simulation.simulate(tgi.gene.id, false);
+                    nlEmpiRe.rnaseq.simulation.SplicingSimulatedGene sgi = simulation.simulate(tgi.gene.id, false);
                     HashMap<Tuple, Double> eqClasses = new HashMap<>();
 
                     for (Vector<HashMap<Tuple, Double>> v : sgi.condition2replicate2equivianceClasses) {
@@ -506,7 +507,7 @@ class TranscriptSimulationTest {
                     }
 
                     ReducedTranscriptPresentationVisualization rtpv = new ReducedTranscriptPresentationVisualization();
-                    empires.rnaseq.ReducedTranscriptPresentation rtp = new empires.rnaseq.ReducedTranscriptPresentation(eqClasses, 2, rtpv);
+                    ReducedTranscriptPresentation rtp = new ReducedTranscriptPresentation(eqClasses, 2, rtpv);
                     rtpv.showSteps();
                     return;
                 })
@@ -522,7 +523,7 @@ class TranscriptSimulationTest {
                 })
                 .addMenu("show diff signals", (ObjectGetter og) -> {
                             TestGeneInfo tgi = (TestGeneInfo) og.getInData();
-                            SplicingSimulatedGene ssg = simulation.simulate(tgi.gene.id, false);
+                            nlEmpiRe.rnaseq.simulation.SplicingSimulatedGene ssg = simulation.simulate(tgi.gene.id, false);
                             HashMap<Tuple, Double> eqClasses = new HashMap<>();
 
                             for (Vector<HashMap<Tuple, Double>> v : ssg.condition2replicate2equivianceClasses) {
@@ -536,14 +537,14 @@ class TranscriptSimulationTest {
                             Vector<BufferedImage> bims = new Vector<>();
 
                             for (int target : toVector(10, 8, 6, 4, 2)) {
-                                empires.rnaseq.ReducedTranscriptPresentation rtp = new empires.rnaseq.ReducedTranscriptPresentation(eqClasses, target);
+                                ReducedTranscriptPresentation rtp = new ReducedTranscriptPresentation(eqClasses, target);
                                 System.out.printf("rtp target: %d got %d/%d\n", target, rtp.getNumRestrictedEQClasses(), eqClasses.size());
                                 Vector<Map<Tuple,Double>> counts_cond1 = map(ssg.condition2replicate2equivianceClasses.get(0), (_m) -> rtp.reduce(_m));
                                 Vector<Map<Tuple,Double>> counts_cond2 = map(ssg.condition2replicate2equivianceClasses.get(1), (_m) -> rtp.reduce(_m));
 
                                 System.out.printf("reduced: %s\n", counts_cond1);
 
-                                Vector<Tuple3<empires.SingleFeatureDiffExp, Color, UPair<Vector<Double>>>> features = new Vector<>();
+                                Vector<Tuple3<SingleFeatureDiffExp, Color, UPair<Vector<Double>>>> features = new Vector<>();
                                 for(Tuple t : rtp.getRestrictedEQClasses()) {
                                     Vector<Double> raw1 = map(counts_cond1, (_m) -> _m.getOrDefault(t, 0.0));
                                     Vector<Double> raw2 = map(counts_cond2, (_m) -> _m.getOrDefault(t, 0.0));
@@ -563,7 +564,7 @@ class TranscriptSimulationTest {
                                     Set<String> trs = mapToSet(rangev(t.cardinality()), (_i) -> t.getAsString(_i));
 
 
-                                    empires.SingleFeatureDiffExp singleFeature = new empires.SingleFeatureDiffExp(""+t, diffExpManager, reps1, reps2);
+                                    SingleFeatureDiffExp singleFeature = new SingleFeatureDiffExp(""+t, diffExpManager, reps1, reps2);
                                     if(!singleFeature.useable)
                                         continue;
                                     features.add(Tuple3.create(singleFeature, tgi.getColor(trs), UPair.createU(raw1, raw2)));
@@ -576,8 +577,8 @@ class TranscriptSimulationTest {
                                 NumUtils.sort(features, (_p) -> _p.getFirst().getFC());
                                 PlotCreator pc = CachedPlotCreator.getPlotCreator();
                                 PlotCreator.BoxPlotBuilder bpb = pc.buildBoxPlot();
-                                for(Tuple3<empires.SingleFeatureDiffExp, Color, UPair<Vector<Double>>> p : features) {
-                                    bpb.addBox(p.get0().feature, new empires.SparseCumulativeDistribution(p.get0().scaledDistribution).quantiles, p.get1());
+                                for(Tuple3<SingleFeatureDiffExp, Color, UPair<Vector<Double>>> p : features) {
+                                    bpb.addBox(p.get0().feature, new SparseCumulativeDistribution(p.get0().scaledDistribution).quantiles, p.get1());
                                 }
 
                                 pc.setTitle("reduced to max " + target + " transcripts");
@@ -586,7 +587,7 @@ class TranscriptSimulationTest {
                                 BufferedImage bim1 = bpb.plot();
 
                                 double x = 0.0;
-                                for(Tuple3<empires.SingleFeatureDiffExp, Color, UPair<Vector<Double>>> p : features) {
+                                for(Tuple3<SingleFeatureDiffExp, Color, UPair<Vector<Double>>> p : features) {
                                     double X = x++;
                                     pc.scatter("", p.get2().getFirst(), (_d) -> X, (_d) -> _d).setColor(Color.DARK_GRAY);
                                     double X2 = x++;
@@ -617,37 +618,37 @@ class TranscriptSimulationTest {
 
                             for(Tuple3<String, Vector<String>, Vector<String>> t : tgi.testCombis) {
                                 System.out.printf("nexts to test: %s\n", t);
-                                empires.DiffExpResult d1 = new empires.DiffExpResult(diffExpManager, "cs1", t.get1());
-                                empires.DiffExpResult d2 = new empires.DiffExpResult(diffExpManager, "cs2", t.get2());
+                                DiffExpResult d1 = new DiffExpResult(diffExpManager, "cs1", t.get1());
+                                DiffExpResult d2 = new DiffExpResult(diffExpManager, "cs2", t.get2());
 
 
-                                empires.ErrorEstimationDistribution e1 = d1.combinedEmpiricalFoldChangeDistrib;
-                                empires.ErrorEstimationDistribution e2 = d2.combinedEmpiricalFoldChangeDistrib;
+                                ErrorEstimationDistribution e1 = d1.combinedEmpiricalFoldChangeDistrib;
+                                ErrorEstimationDistribution e2 = d2.combinedEmpiricalFoldChangeDistrib;
 
                                 PlotCreator pc = CachedPlotCreator.getPlotCreator();
 
 
 
-                                Vector<Pair<String, empires.ErrorEstimationDistribution>> toplot = toVector(
+                                Vector<Pair<String, ErrorEstimationDistribution>> toplot = toVector(
                                         Pair.create("cs1", e1), Pair.create("cs2", e2)
                                 );
 
-                                for (Pair<String, empires.ErrorEstimationDistribution> p : toplot) {
+                                for (Pair<String, ErrorEstimationDistribution> p : toplot) {
                                     if (p.getFirst() == null)
                                         continue;
 
-                                    new empires.SparseCumulativeDistribution(p.getSecond()).drawLine(pc, p.getFirst());
+                                    new SparseCumulativeDistribution(p.getSecond()).drawLine(pc, p.getFirst());
                                 }
                                 BufferedImage distribs = pc.getImage();
 
 
                                 PlotCreator.BoxPlotBuilder bpb = pc.buildBoxPlot();
 
-                                for (Pair<String, empires.ErrorEstimationDistribution> p : toplot) {
+                                for (Pair<String, ErrorEstimationDistribution> p : toplot) {
                                     if (p.getFirst() == null)
                                         continue;
 
-                                    new empires.SparseCumulativeDistribution(p.getSecond()).drawBox(bpb, p.getFirst());
+                                    new SparseCumulativeDistribution(p.getSecond()).drawBox(bpb, p.getFirst());
                                 }
 
                                 pc.setLabels("", "log2fc", null);
@@ -689,7 +690,7 @@ class TranscriptSimulationTest {
     }
 
     static void eqReductionTest(SimulationConfiguration config, File trcounts) {
-        empires.rnaseq.simulation.SplicingSimulation simulation = new empires.rnaseq.simulation.SplicingSimulation(config, trcounts);
+        nlEmpiRe.rnaseq.simulation.SplicingSimulation simulation = new nlEmpiRe.rnaseq.simulation.SplicingSimulation(config, trcounts);
 
         class ReduceInfo {
             int target = -1;
@@ -714,7 +715,7 @@ class TranscriptSimulationTest {
 
 
 
-            SplicingSimulatedGene ssg = simulation.simulate(g, false);
+            nlEmpiRe.rnaseq.simulation.SplicingSimulatedGene ssg = simulation.simulate(g, false);
 
             HashMap<Tuple, Double> eqClasses = new HashMap<>();
 
@@ -736,7 +737,7 @@ class TranscriptSimulationTest {
                     r.numOk++;
                     continue;
                 }
-                empires.rnaseq.ReducedTranscriptPresentation rtp = new empires.rnaseq.ReducedTranscriptPresentation(eqClasses, r.target);
+                ReducedTranscriptPresentation rtp = new ReducedTranscriptPresentation(eqClasses, r.target);
                 r.numOk += (rtp.isTestable(trs.get(0), trs.get(1))) ? 1 : 0;
                 r.sizes.add(rtp.getNumRestrictedEQClasses());
             }
@@ -757,7 +758,7 @@ class TranscriptSimulationTest {
     }
     static void multiTranscriptSimulationTest(boolean doPlot, SimulationConfiguration config, File trcounts, int MAXTRCOUNT) {
 
-        empires.rnaseq.simulation.SplicingSimulation simulation = new SplicingSimulation(config, trcounts);
+        nlEmpiRe.rnaseq.simulation.SplicingSimulation simulation = new SplicingSimulation(config, trcounts);
 
         SimulationConfiguration simulationConfiguration = getDefaultConfig();
 
@@ -782,8 +783,8 @@ class TranscriptSimulationTest {
         Vector<Integer> restrictedEqsSizes = new Vector<>();
 
         for(String geneId : toCheck) {
-            empires.rnaseq.MultiIsoformRegion gene = config.getAnnot().getRegionById(geneId);
-            SplicingSimulatedGene ssg = simulation.simulate(geneId, false, simulationConfiguration.getReadInReplicateConsumer());
+            MultiIsoformRegion gene = config.getAnnot().getRegionById(geneId);
+            nlEmpiRe.rnaseq.simulation.SplicingSimulatedGene ssg = simulation.simulate(geneId, false, simulationConfiguration.getReadInReplicateConsumer());
             HashSet<Tuple> eqs = new HashSet<>();
             HashMap<Tuple, Double> eqToCount = new HashMap<>();
 
@@ -795,8 +796,8 @@ class TranscriptSimulationTest {
             int maxTrCount = 0;
             for(int ci =0 ; ci < simulation.getNumConditions(); ci++) {
                 String condname = "cond"+(ci+1);
-                Vector<empires.rnaseq.simulation.TranscriptSimulation> repSimulation  = map(simulation.getCondition(ci).replicates, (_r) -> _r.get(gene));
-                for(empires.rnaseq.simulation.TranscriptSimulation trS : repSimulation) {
+                Vector<nlEmpiRe.rnaseq.simulation.TranscriptSimulation> repSimulation  = map(simulation.getCondition(ci).replicates, (_r) -> _r.get(gene));
+                for(TranscriptSimulation trS : repSimulation) {
                     simultedTranscriptIds.addAll(trS.getSimulatedTranscriptIds());
 
                     for(String trid : trS.getSimulatedTranscriptIds()) {
@@ -832,7 +833,7 @@ class TranscriptSimulationTest {
             simulatedGeneInfo.numTranscriptsWithCounts = ssg.trsWithCounts.size();
 
 
-            empires.rnaseq.ReducedTranscriptPresentation rtp = new empires.rnaseq.ReducedTranscriptPresentation(eqToCount, MAXTRCOUNT);
+            ReducedTranscriptPresentation rtp = new ReducedTranscriptPresentation(eqToCount, MAXTRCOUNT);
             int numClusters = rtp.getNumClusters();
 
             trWithCounts.add(ssg.trsWithCounts.size());
@@ -901,13 +902,13 @@ class TranscriptSimulationTest {
 
     }
 
-    static Vector<SimulatedRead> simulateStartPos(HashMap<String, RegionVector> isoforms, int RL, double[] proportions, int start) {
+    static Vector<nlEmpiRe.rnaseq.simulation.SimulatedRead> simulateStartPos(HashMap<String, RegionVector> isoforms, int RL, double[] proportions, int start) {
         Vector<String> trids = toSortedVector(isoforms.keySet(), true);
 
 
-        Vector<SimulatedRead> simulatedReads = new Vector<>();
+        Vector<nlEmpiRe.rnaseq.simulation.SimulatedRead> simulatedReads = new Vector<>();
 
-        empires.rnaseq.simulation.PositionBiasFactory biasFactory = new PositionBiasFactory();
+        PositionBiasFactory biasFactory = new PositionBiasFactory();
         double[] cumulative = new double[proportions.length];
         cumulative[0] = proportions[0];
         for(int i=1; i<proportions.length; i++) {
@@ -989,7 +990,7 @@ class TranscriptSimulationTest {
         boolean doplot = cmd.isSet("doplot");
 
         File trcounts = (cmd.isOptionSet("trcounts")) ? cmd.getFile("trcounts") : TRSIMULATION;
-        empires.rnaseq.IsoformRegionGetter annot = (cmd.isOptionSet("gtf")) ? new GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null) : getHumanAnnot();
+        IsoformRegionGetter annot = (cmd.isOptionSet("gtf")) ? new GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null) : getHumanAnnot();
 
         HUMAN_IRG = annot;
         SimulationConfiguration simulationConfiguration = new SimulationConfiguration(annot);

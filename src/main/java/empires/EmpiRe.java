@@ -1,7 +1,7 @@
-package empires;
+package nlEmpiRe;
 
 import lmu.utils.LogConfig;
-import lmu.utils.Logger;
+import org.apache.logging.log4j.Logger;
 import lmu.utils.NumUtils;
 import lmu.utils.SetInfo;
 import lmu.utils.fdr.BenjaminiHochberg;
@@ -50,13 +50,13 @@ public class EmpiRe {
         return per_comparison_fcdist_pvals;
     }
 
-    public Vector<empires.DiffExpResult> getDifferentialResults(empires.NormalizedReplicateSet replicateSetFrom, empires.NormalizedReplicateSet replicateSetTo, Collection<String> featureNames) {
+    public Vector<DiffExpResult> getDifferentialResults(NormalizedReplicateSet replicateSetFrom, NormalizedReplicateSet replicateSetTo, Collection<String> featureNames) {
 
         return getDifferentialResults(replicateSetFrom, replicateSetTo, buildMap(featureNames, (_n) -> toVector(_n)));
     }
 
     /** tests all testable features */
-    public Vector<empires.DiffExpResult> getDifferentialResults(empires.NormalizedReplicateSet replicateSetFrom, empires.NormalizedReplicateSet replicateSetTo) {
+    public Vector<DiffExpResult> getDifferentialResults(NormalizedReplicateSet replicateSetFrom, NormalizedReplicateSet replicateSetTo) {
         Set<String> testable = (compareFeaturesMeasuredOnlyOnOneSide) ?
                     SetInfo.union(replicateSetFrom.inData.getFeatureNamesToTest(), replicateSetTo.inData.getFeatureNamesToTest())
                 :   SetInfo.intersect(replicateSetFrom.inData.getFeatureNamesToTest(), replicateSetTo.inData.getFeatureNamesToTest());
@@ -74,15 +74,15 @@ public class EmpiRe {
                 );
     }
 
-    public Vector<empires.DiffExpResult> getDifferentialResults(empires.NormalizedReplicateSet replicateSetFrom, empires.NormalizedReplicateSet replicateSetTo,
-                                                                HashMap<String, Vector<String>> combinedFeature2SubFeatures
+    public Vector<DiffExpResult> getDifferentialResults(NormalizedReplicateSet replicateSetFrom, NormalizedReplicateSet replicateSetTo,
+                                                               HashMap<String, Vector<String>> combinedFeature2SubFeatures
                                                                )
     {
         return getDifferentialResults(replicateSetFrom, replicateSetTo, combinedFeature2SubFeatures.keySet(), (_fn) -> combinedFeature2SubFeatures.get(_fn));
     }
 
-    public Vector<empires.DiffExpResult> getDifferentialResults(empires.NormalizedReplicateSet replicateSetFrom, empires.NormalizedReplicateSet replicateSetTo,
-                                                                Collection<String> featureNames, Function<String, Collection<String>> feature2subfeature) {
+    public Vector<DiffExpResult> getDifferentialResults(NormalizedReplicateSet replicateSetFrom, NormalizedReplicateSet replicateSetTo,
+                                                        Collection<String> featureNames, Function<String, Collection<String>> feature2subfeature) {
 
         Logger log = LogConfig.getLogger();
 
@@ -94,7 +94,7 @@ public class EmpiRe {
 
         DiffExpManager diffExpManager = new DiffExpManager(replicateSetFrom, replicateSetTo, totalFeatures, this);
 
-        Vector<empires.DiffExpResult> results = new Vector<>();
+        Vector<DiffExpResult> results = new Vector<>();
         Vector<String> gotsubfeatures = filter(featureNames, (_f) -> feature2subfeature.apply(_f).size() > 0);
         log.info("will test diffexp %s - %s on %d/%d features. subfeature distrib: %s", replicateSetFrom.getInData().getReplicateSetName(),
                 replicateSetTo.getInData().getReplicateSetName(),
@@ -108,7 +108,7 @@ public class EmpiRe {
 
             ntested++;
             //log.info("next to test: %s num subfeatures: %d", combined, subfeatures.size());
-            empires.DiffExpResult diffExp = new DiffExpResult(diffExpManager, combined, subfeatures);
+            DiffExpResult diffExp = new DiffExpResult(diffExpManager, combined, subfeatures);
             if(ntested % 1000 == 0) {
                 long t2 = System.currentTimeMillis();
                 log.info("diffexp ready: %d/%d took %.4f sec on average", ntested, gotsubfeatures.size(), (t2 - t1) / (1000.0 * ntested));
@@ -128,9 +128,9 @@ public class EmpiRe {
     }
 
 
-    public Vector<empires.DoubleDiffResult> getDoubleDiffResults(empires.NormalizedReplicateSet replicateSetFrom, empires.NormalizedReplicateSet replicateSetTo,
-                                                                 Vector<Tuple3<String, Collection<String>, Collection<String>>> doubleDiffTests) {
-        empires.DoubleDiffManager diffManager = getDoubleDiffManager(replicateSetFrom, replicateSetTo);
+    public Vector<DoubleDiffResult> getDoubleDiffResults(NormalizedReplicateSet replicateSetFrom, NormalizedReplicateSet replicateSetTo,
+                                                         Vector<Tuple3<String, Collection<String>, Collection<String>>> doubleDiffTests) {
+        DoubleDiffManager diffManager = getDoubleDiffManager(replicateSetFrom, replicateSetTo);
 
         Vector<DoubleDiffResult> results = new Vector<>();
         for(Tuple3<String, Collection<String>, Collection<String>> t : doubleDiffTests) {
@@ -141,7 +141,7 @@ public class EmpiRe {
     }
 
 
-    public empires.DoubleDiffManager getDoubleDiffManager(empires.NormalizedReplicateSet replicateSetFrom, empires.NormalizedReplicateSet replicateSetTo) {
+    public DoubleDiffManager getDoubleDiffManager(NormalizedReplicateSet replicateSetFrom, NormalizedReplicateSet replicateSetTo) {
         HashSet<String> allfeatures = new HashSet<>();
         allfeatures.addAll(replicateSetFrom.getInData().getFeatureNames());
         allfeatures.addAll(replicateSetTo.getInData().getFeatureNames());
@@ -149,7 +149,7 @@ public class EmpiRe {
         return getDoubleDiffManager(replicateSetFrom, replicateSetTo, toVector(allfeatures));
     }
 
-    public empires.DoubleDiffManager getDoubleDiffManager(empires.NormalizedReplicateSet replicateSetFrom, NormalizedReplicateSet replicateSetTo, Vector<String> allfeatures) {
+    public DoubleDiffManager getDoubleDiffManager(NormalizedReplicateSet replicateSetFrom, NormalizedReplicateSet replicateSetTo, Vector<String> allfeatures) {
         return new DoubleDiffManager(replicateSetFrom, replicateSetTo, new DiffExpManager(replicateSetFrom, replicateSetTo, allfeatures, this));
     }
 }

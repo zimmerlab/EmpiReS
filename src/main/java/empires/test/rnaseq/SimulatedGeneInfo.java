@@ -1,4 +1,4 @@
-package empires.test.rnaseq;
+package nlEmpiRe.test.rnaseq;
 
 import lmu.utils.DataTable;
 import lmu.utils.MapBuilder;
@@ -14,8 +14,8 @@ public class SimulatedGeneInfo {
     boolean diffexp;
     boolean diffaltsplic;
 
-    empires.test.rnaseq.CondTrCountInfo c1CountInfo;
-    empires.test.rnaseq.CondTrCountInfo c2CountInfo;
+    CondTrCountInfo c1CountInfo;
+    CondTrCountInfo c2CountInfo;
     String cond1;
     HashMap<String, Vector<Integer>> c1_tr2count = new HashMap<>();
     HashMap<String, Vector<Integer>> c2_tr2count = new HashMap<>();
@@ -45,8 +45,8 @@ public class SimulatedGeneInfo {
 
 
     void compile() {
-        c1CountInfo = new empires.test.rnaseq.CondTrCountInfo(c1_tr2count);
-        c2CountInfo = new empires.test.rnaseq.CondTrCountInfo(c2_tr2count);
+        c1CountInfo = new CondTrCountInfo(c1_tr2count);
+        c2CountInfo = new CondTrCountInfo(c2_tr2count);
     }
 
     static public DataTable toTable(Vector<SimulatedGeneInfo> genes) {

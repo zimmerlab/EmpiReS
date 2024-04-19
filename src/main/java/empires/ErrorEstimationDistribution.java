@@ -1,4 +1,4 @@
-package empires;
+package nlEmpiRe;
 
 import lmu.utils.*;
 import lmu.utils.tuple.Tuple3;
@@ -13,6 +13,7 @@ import java.util.function.Function;
 
 import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class ErrorEstimationDistribution {
 

@@ -1,12 +1,12 @@
-package empires.test.rnaseq;
+package nlEmpiRe.test.rnaseq;
 
-import empires.rnaseq.MultiIsoformRegion;
-import empires.rnaseq.ReducedTranscriptPresentation;
-import empires.rnaseq.simulation.SimulatedRead;
-import empires.rnaseq.simulation.SplicingSimulation;
 import lmu.utils.*;
 import lmu.utils.plotting.*;
 import lmu.utils.tuple.Tuple4;
+import nlEmpiRe.rnaseq.MultiIsoformRegion;
+import nlEmpiRe.rnaseq.ReducedTranscriptPresentation;
+import nlEmpiRe.rnaseq.simulation.SimulatedRead;
+import nlEmpiRe.rnaseq.simulation.SplicingSimulation;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -32,29 +32,29 @@ public class SimulatedGeneWithCoverage {
     static Color MIXED = Color.MAGENTA;
 
     static class SimulationStarter {
-        empires.rnaseq.simulation.SplicingSimulation simulation;
-        Supplier<Iterable<empires.rnaseq.simulation.SimulatedRead>> supplier;
-        empires.rnaseq.simulation.SplicingSimulation.ReadInReplicateConsumer consumer;
+        SplicingSimulation simulation;
+        Supplier<Iterable<SimulatedRead>> supplier;
+        SplicingSimulation.ReadInReplicateConsumer consumer;
         String id;
 
-        public SimulationStarter(empires.rnaseq.simulation.SplicingSimulation simulation) {
+        public SimulationStarter(SplicingSimulation simulation) {
             this.simulation = simulation;
         }
 
 
-        public SimulationStarter(Supplier<Iterable<empires.rnaseq.simulation.SimulatedRead>> supplier) {
+        public SimulationStarter(Supplier<Iterable<SimulatedRead>> supplier) {
             this.supplier = supplier;
         }
 
 
-        public void setConsumer(String id, empires.rnaseq.simulation.SplicingSimulation.ReadInReplicateConsumer consumer) {
+        public void setConsumer(String id, SplicingSimulation.ReadInReplicateConsumer consumer) {
             this.id = id;
             this.consumer = consumer;
         }
 
         public void simulate() {
             if(supplier != null) {
-                for(empires.rnaseq.simulation.SimulatedRead sr : supplier.get()) {
+                for(SimulatedRead sr : supplier.get()) {
                     consumer.accept("cond1", 0, sr);
                 }
                 return;
@@ -68,7 +68,7 @@ public class SimulatedGeneWithCoverage {
     }
 
     public SimulatedGeneWithCoverage(String id, boolean strand, HashMap<String, RegionVector> isoforms, Set<String> relevant, int maxTranscriptToReduce,
-                                     Supplier<Iterable<empires.rnaseq.simulation.SimulatedRead>> simulator) {
+                                     Supplier<Iterable<SimulatedRead>> simulator) {
         this(id, strand, isoforms, relevant, maxTranscriptToReduce, new SimulationStarter(simulator));
     }
 
@@ -107,7 +107,7 @@ public class SimulatedGeneWithCoverage {
         trs.addAll(relevant);
         for (String tr : trs) {
             RegionVector r = isoforms.get(tr);
-            RegionVector converted = empires.test.rnaseq.TranscriptSimulationTest.convertToInner(merged, !strand, r);
+            RegionVector converted = TranscriptSimulationTest.convertToInner(merged, !strand, r);
 
 
             if(relevant.contains(tr)) {
@@ -128,7 +128,7 @@ public class SimulatedGeneWithCoverage {
         }
 
 
-        HashMap<Tuple, Vector<empires.rnaseq.simulation.SimulatedRead>> eq2regvecs = new HashMap<>();
+        HashMap<Tuple, Vector<SimulatedRead>> eq2regvecs = new HashMap<>();
 
         DataPicturePane dpp = zoomedMultiPicPlaneFrame.createDataPane("coverages");
 
@@ -137,7 +137,7 @@ public class SimulatedGeneWithCoverage {
 
         HashMap<String, int[]> rep2coverage = new HashMap<>();
         simulationStarter.setConsumer(id,
-                (String condition, int replicateId, empires.rnaseq.simulation.SimulatedRead read)
+                (String condition, int replicateId, SimulatedRead read)
                         -> {
 
                     MapBuilder.update(cond2rep, condition, replicateId);
@@ -147,7 +147,7 @@ public class SimulatedGeneWithCoverage {
                     int[] coverage = rep2coverage.computeIfAbsent(repname, (_n) -> new int[L]);
                     for (int fw = 0; fw < 2; fw++) {
                         RegionVector rv = (fw == 0) ? read.fw : read.rw;
-                        for (Region1D r : empires.test.rnaseq.TranscriptSimulationTest.convertToInner(merged, !strand, rv).getRegions()) {
+                        for (Region1D r : TranscriptSimulationTest.convertToInner(merged, !strand, rv).getRegions()) {
                             coverage[r.getX1()]++;
                             coverage[r.getX2()]--;
                         }
@@ -167,12 +167,12 @@ public class SimulatedGeneWithCoverage {
             if(target >= isoforms.size())
                 continue;
 
-            empires.rnaseq.ReducedTranscriptPresentation rtp = new empires.rnaseq.ReducedTranscriptPresentation(
+            ReducedTranscriptPresentation rtp = new ReducedTranscriptPresentation(
                     buildMap(eq2regvecs.entrySet(), (_e) -> _e.getKey(), (_e) -> 0.0 + _e.getValue().size()),
                     reduceTargets.get(i)
             );
 
-            HashMap<Tuple, Vector<empires.rnaseq.simulation.SimulatedRead>> reducedEQ2regvecs = new HashMap<>();
+            HashMap<Tuple, Vector<SimulatedRead>> reducedEQ2regvecs = new HashMap<>();
             for(Tuple t : eq2regvecs.keySet()) {
                 Tuple reduced = rtp.reduceTuple(t);
                 reducedEQ2regvecs.computeIfAbsent(reduced, (_k) -> new Vector<>()).addAll(eq2regvecs.get(t));
@@ -213,7 +213,7 @@ public class SimulatedGeneWithCoverage {
         show(true);
     }
 
-    void addEQClassesToPane(RegionPicturePane pane, HashMap<Tuple, Vector<empires.rnaseq.simulation.SimulatedRead>> eq2regvecs, ReducedTranscriptPresentation rtp) {
+    void addEQClassesToPane(RegionPicturePane pane, HashMap<Tuple, Vector<SimulatedRead>> eq2regvecs, ReducedTranscriptPresentation rtp) {
 
         Vector<Tuple4<Integer, String, RegionPlot.RegionDecorator,  RegionVector>> eqRegVecs = new Vector<>();
 
@@ -238,7 +238,7 @@ public class SimulatedGeneWithCoverage {
             int pcount = tomerge.size() >> 1;
             Color c = (cv.size() == 1) ? cv.get(0) : (cv.size() > 1) ? Color.MAGENTA : Color.BLACK;
             RegionPlot.RegionDecorator rd = new RegionPlot.RegionDecorator(c, true);
-            eqRegVecs.add(Tuple4.create(pcount, pcount+":" + t, rd,  empires.test.rnaseq.TranscriptSimulationTest.convertToInner(merged, !strand, tmerged)));
+            eqRegVecs.add(Tuple4.create(pcount, pcount+":" + t, rd,  TranscriptSimulationTest.convertToInner(merged, !strand, tmerged)));
 
         }
 

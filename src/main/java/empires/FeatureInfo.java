@@ -1,4 +1,4 @@
-package empires;
+package nlEmpiRe;
 
 import lmu.utils.NumUtils;
 
@@ -25,7 +25,7 @@ public class FeatureInfo {
     FeatureInfo(String feature) {
         this.feature = feature;
     }
-    public FeatureInfo(String feature, empires.NormalizedReplicateSet rs1, empires.NormalizedReplicateSet rs2) {
+    public FeatureInfo(String feature, NormalizedReplicateSet rs1, NormalizedReplicateSet rs2) {
         this(feature);
         this.cond1_logvals = rs1.getInData().getReplicateData(feature);
         this.cond2_logvals = rs2.getInData().getReplicateData(feature);
@@ -82,7 +82,7 @@ public class FeatureInfo {
     }
 
 
-    public static Vector<FeatureInfo> merge(Vector<String> features, empires.NormalizedReplicateSet rs1, NormalizedReplicateSet rs2, double minTreshold, Double pseudo) {
+    public static Vector<FeatureInfo> merge(Vector<String> features, NormalizedReplicateSet rs1, NormalizedReplicateSet rs2, double minTreshold, Double pseudo) {
         Vector<FeatureInfo> featureInfos = NumUtils.sort(map(features, (_f) -> new FeatureInfo(_f, rs1, rs2)), (_f) -> _f.overallmin);
         Vector<FeatureInfo> merged = new Vector<>();
         FeatureInfo combined = null;

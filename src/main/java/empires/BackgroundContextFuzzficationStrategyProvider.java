@@ -1,4 +1,4 @@
-package empires;
+package nlEmpiRe;
 
 import java.util.Vector;
 

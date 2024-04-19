@@ -1,6 +1,6 @@
-package empires.release;
+package nlEmpiRe.release;
 
-import empires.rnaseq.mapping.TranscriptInfoBasedGenomicMapper;
+import nlEmpiRe.rnaseq.mapping.TranscriptInfoBasedGenomicMapper;
 
 public class ECMMapper {
     public static void main(String[] args) {

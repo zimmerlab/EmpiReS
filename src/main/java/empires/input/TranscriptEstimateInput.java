@@ -1,19 +1,20 @@
-package empires.input;
+package nlEmpiRe.input;
 
-import empires.rnaseq.GFFBasedIsoformRegionGetter;
-import empires.rnaseq.SplicingTest;
 import lmu.utils.*;
 import lmu.utils.fdr.PerformanceResult;
 import lmu.utils.plotting.PlotCreator;
-import empires.DoubleDiffResult;
+import nlEmpiRe.DoubleDiffResult;
 import lmu.utils.plotting.CachedPlotCreator;
-import empires.test.rnaseq.BenchmarkGene;
+import nlEmpiRe.rnaseq.GFFBasedIsoformRegionGetter;
+import nlEmpiRe.rnaseq.SplicingTest;
+import nlEmpiRe.test.rnaseq.BenchmarkGene;
 
 import java.io.File;
 import java.util.*;
 import java.util.function.Function;
 
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class TranscriptEstimateInput {
 
@@ -24,13 +25,13 @@ public class TranscriptEstimateInput {
 
     static String[] ABUNDANCE_FILES = new String[]{ABUNDANCE_FILE_KALLISTO, ABUNDANCE_FILE_SALMON, ABUNDANCE_FILE_STRINGTIE};
 
-    empires.input.ExperimentDescriptor experimentDescriptor;
+    ExperimentDescriptor experimentDescriptor;
     HashMap<String, String> transcript2gene;
-    empires.input.RNASeqSplicingInfo rsi;
+    RNASeqSplicingInfo rsi;
 
-    public TranscriptEstimateInput(File root, empires.input.ExperimentDescriptor experimentDescriptor, HashMap<String, String> transcript2gene) {
+    public TranscriptEstimateInput(File root, ExperimentDescriptor experimentDescriptor, HashMap<String, String> transcript2gene) {
         this.experimentDescriptor = experimentDescriptor;
-        rsi = new empires.input.RNASeqSplicingInfo(1000, 0, experimentDescriptor.getCond2Reps());
+        rsi = new RNASeqSplicingInfo(1000, 0, experimentDescriptor.getCond2Reps());
         HashMap<String, HashSet<String>> gene2trs = new HashMap<>();
 
         HashMap<String, Vector<HashMap<String, Double>>> cond2rep2tr2counts = new HashMap<>();
@@ -113,7 +114,7 @@ public class TranscriptEstimateInput {
     }
 
     static HashMap<String, String> getTranscript2Gene(File gtf) {
-        empires.rnaseq.GFFBasedIsoformRegionGetter gff = new GFFBasedIsoformRegionGetter(gtf, null, null);
+        GFFBasedIsoformRegionGetter gff = new GFFBasedIsoformRegionGetter(gtf, null, null);
         HashMap<String, String> transcript2gene = new HashMap<>();
         apply(gff.getRegions(), (_m) ->
             apply(_m.isoforms.keySet(), (_tr) -> transcript2gene.put(_tr, _m.id))
@@ -122,11 +123,11 @@ public class TranscriptEstimateInput {
     }
     public static void main(String[] args) {
 
-        empires.input.BackgroundProviderOption backgroundProviderOption = new BackgroundProviderOption();
-        SimpleOptionParser cmd = new SimpleOptionParser("cond2reps", "gtf", "trestimateroot", "pseudo", "trues",
+        BackgroundProviderOption backgroundProviderOption = new BackgroundProviderOption();
+        SimpleOptionParser cmd = new SimpleOptionParser("samples", "gtf", "dir", "pseudo", "trues",
                 "showtable",  "minc", "minctest", "showplots", "cond1", "cond2", "o");
-        cmd.setFile("cond2reps", "trues");
-        cmd.setDir("trestimateroot");
+        cmd.setFile("samples", "trues");
+        cmd.setDir("dir");
         cmd.setInt( "minc", "minctest");
 
         cmd.setDefault("minc", "0");
@@ -144,13 +145,13 @@ public class TranscriptEstimateInput {
         boolean showplots = cmd.isSet("showplots");
 
         HashMap<String, String> tr2genes = TranscriptEstimateInput.getTranscript2Gene(cmd.getFile("gtf"));
-        empires.input.ExperimentDescriptor experimentDescriptor = new ExperimentDescriptor(cmd.getFile("cond2reps"), null, cmd.getOptionalFile("trues"));
+        ExperimentDescriptor experimentDescriptor = new ExperimentDescriptor(cmd.getFile("samples"), null, cmd.getOptionalFile("trues"));
 
-        TranscriptEstimateInput transcriptEstimateInput = new TranscriptEstimateInput(cmd.getFile("trestimateroot"), experimentDescriptor, tr2genes);
+        TranscriptEstimateInput transcriptEstimateInput = new TranscriptEstimateInput(cmd.getFile("dir"), experimentDescriptor, tr2genes);
 
         RNASeqSplicingInfo splicingInfo = transcriptEstimateInput.rsi;
 
-        empires.rnaseq.SplicingTest test = new SplicingTest(splicingInfo, backgroundProviderOption.getStrategy());
+        SplicingTest test = new SplicingTest(splicingInfo, backgroundProviderOption.getStrategy());
         test.setPseudo(RAW_PSEUDO);
         test.setShowPlots(showplots);
 

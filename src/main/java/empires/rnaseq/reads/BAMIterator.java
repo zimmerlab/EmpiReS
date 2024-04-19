@@ -1,6 +1,6 @@
-package empires.rnaseq.reads;
+package nlEmpiRe.rnaseq.reads;
 
-import empires.rnaseq.GenomicUtils;
+import nlEmpiRe.rnaseq.*;
 import lmu.utils.*;
 import lmu.utils.tuple.Tuple3;
 import net.sf.samtools.AlignmentBlock;
@@ -15,15 +15,16 @@ import java.util.function.BiConsumer;
 
 import static lmu.utils.ObjectGetter.*;
 import static lmu.utils.ObjectGetter.apply;
+import org.apache.logging.log4j.Logger;
 
 public class BAMIterator<A>
 {
     static boolean NO_PCR_DOWNSAMPLING = false;
 
     Logger log = LogConfig.getLogger();
-    empires.rnaseq.IsoformRegionGetter annot;
+    IsoformRegionGetter annot;
 
-    public BAMIterator(empires.rnaseq.IsoformRegionGetter annot)
+    public BAMIterator(IsoformRegionGetter annot)
     {
         this.annot = annot;
     }
@@ -296,12 +297,12 @@ public class BAMIterator<A>
         public RegionVector merged;
         RegionVector splits;
         public Boolean strand;
-        public Vector<empires.rnaseq.MultiIsoformRegion> contained_genes;
-        public Vector<empires.rnaseq.MultiIsoformRegion> in_genes;
-        public HashSet<empires.rnaseq.MultiIsoformRegion> MERGED_GENES = new HashSet<>();
-        public Vector<empires.rnaseq.MultiIsoformRegion> INTRONIC_GENES = new Vector<>();
-        public Vector<empires.rnaseq.MultiIsoformRegion> ANTISENSE_GENES = new Vector<>();
-        public HashMap<empires.rnaseq.MultiIsoformRegion, HashSet<String>> TR_GENES = new HashMap<>();
+        public Vector<MultiIsoformRegion> contained_genes;
+        public Vector<MultiIsoformRegion> in_genes;
+        public HashSet<MultiIsoformRegion> MERGED_GENES = new HashSet<>();
+        public Vector<MultiIsoformRegion> INTRONIC_GENES = new Vector<>();
+        public Vector<MultiIsoformRegion> ANTISENSE_GENES = new Vector<>();
+        public HashMap<MultiIsoformRegion, HashSet<String>> TR_GENES = new HashMap<>();
 
         Pair<Integer, Region1D<String>> closest_strandless = null;
         Pair<Integer, Region1D<String>> closest_strandspec = null;
@@ -313,12 +314,12 @@ public class BAMIterator<A>
 
         READTYPE rtype = READTYPE.GENE_OVERLAPPING;
 
-        ReadAnnotInfo(String chr, RegionVector fw_rv, RegionVector rw_rv, RegionVector merged, RegionVector splits, Boolean strand, empires.rnaseq.IsoformRegionGetter annot)
+        ReadAnnotInfo(String chr, RegionVector fw_rv, RegionVector rw_rv, RegionVector merged, RegionVector splits, Boolean strand, IsoformRegionGetter annot)
         {
             this.chr = chr;
             this.merged = merged; this.strand = strand; this.splits = splits;
             key = new AnnotKey(merged, strand, splits);
-            Vector<empires.rnaseq.MultiIsoformRegion> genes = toVector(annot.getRegions(chr, merged.getX1(), merged.getX2()));
+            Vector<MultiIsoformRegion> genes = toVector(annot.getRegions(chr, merged.getX1(), merged.getX2()));
 
             //ANTISENSE_GENES = filter(genes, (_g) -> strand != null && _g.strand != strand);
 
@@ -343,14 +344,14 @@ public class BAMIterator<A>
                 //System.out.printf("%s dist: %s\n", merged, closest);
 
                 gdist = (closest_strandspec == null) ? Integer.MIN_VALUE : closest_strandspec.getFirst();
-                Vector<empires.rnaseq.MultiIsoformRegion> dgenes = toVector(annot.getRegionsAround(chr, merged.getX1(), merged.getX2()));
+                Vector<MultiIsoformRegion> dgenes = toVector(annot.getRegionsAround(chr, merged.getX1(), merged.getX2()));
 
                 //System.out.printf("genes around: %s\n", map(dgenes, (_g) -> _g.getLocationInfo()));
                 return;
             }
 
 
-            for(empires.rnaseq.MultiIsoformRegion mir : in_genes)
+            for(MultiIsoformRegion mir : in_genes)
             {
                 if(!mir.getMergedTranscript().containsRV2(merged)) {
                     INTRONIC_GENES.add(mir);
@@ -411,7 +412,7 @@ public class BAMIterator<A>
     static HashMap<String, String> chr2chr = new HashMap<>();
     static Logger chrModLog = LogConfig.getLogger();
 
-    static String correctChr(String chr, empires.rnaseq.IsoformRegionGetter annot) {
+    static String correctChr(String chr, IsoformRegionGetter annot) {
         String mapped = chr2chr.get(chr);
         if(mapped != null)
             return mapped;
@@ -483,9 +484,9 @@ public class BAMIterator<A>
         boolean fr_strand;
         public int pcr_index = 0;
         public ReadAnnotInfo<A> info = null;
-        empires.rnaseq.IsoformRegionGetter annot;
+        IsoformRegionGetter annot;
 
-        AnnotatedRead(A obj, SAMRecord sr1, int mate_start,  Boolean strand, empires.rnaseq.IsoformRegionGetter annot)
+        AnnotatedRead(A obj, SAMRecord sr1, int mate_start,  Boolean strand, IsoformRegionGetter annot)
         {
             this.obj = obj; this.annot = annot;
 
@@ -515,7 +516,7 @@ public class BAMIterator<A>
             return String.format("anread<%s>: %s gov: %s", obj, rid, gene_overlapping_read);
         }
 
-        AnnotatedRead(A obj, empires.rnaseq.IsoformRegionGetter annot, Cache<A> cache, Boolean strandness, SAMRecord sr1, SAMRecord sr2)
+        AnnotatedRead(A obj, IsoformRegionGetter annot, Cache<A> cache, Boolean strandness, SAMRecord sr1, SAMRecord sr2)
         {
             this.obj = obj;
             this.annot = annot;
@@ -626,10 +627,10 @@ public class BAMIterator<A>
             {
                 Vector<Tuple3<String, Boolean, Region1D<String>>> reginfos = annot.getRegionInfos(chr, partly_defined_region.getX1(), partly_defined_region.getX2());
 
-                Vector<empires.rnaseq.MultiIsoformRegion> genes = toVector(annot.getRegions(chr, partly_defined_region.getX1(), partly_defined_region.getX2()));
+                Vector<MultiIsoformRegion> genes = toVector(annot.getRegions(chr, partly_defined_region.getX1(), partly_defined_region.getX2()));
 
-                Vector<empires.rnaseq.MultiIsoformRegion> contained_genes = filter(genes, (_g) -> (strand == null || strand == _g.strand) && _g.start >= partly_defined_region.getX1() && _g.end  <= partly_defined_region.getX2());
-                Vector<empires.rnaseq.MultiIsoformRegion> in_genes= filter(genes, (_g) -> (strand == null || strand == _g.strand) && _g.start <= partly_defined_region.getX1() && _g.end  >= partly_defined_region.getX2());
+                Vector<MultiIsoformRegion> contained_genes = filter(genes, (_g) -> (strand == null || strand == _g.strand) && _g.start >= partly_defined_region.getX1() && _g.end  <= partly_defined_region.getX2());
+                Vector<MultiIsoformRegion> in_genes= filter(genes, (_g) -> (strand == null || strand == _g.strand) && _g.start <= partly_defined_region.getX1() && _g.end  >= partly_defined_region.getX2());
 
                 pw.printf("partly defined region: %s\n", partly_defined_region);
                 pw.printf("contained genes (%d): \n%s\nin genes(%d): %s\n",
@@ -1149,14 +1150,14 @@ public class BAMIterator<A>
 
     }
 
-    static boolean checkSkipDueContainment(empires.rnaseq.IsoformRegionGetter annot, String chr, int rstart, int rend, Boolean strand)
+    static boolean checkSkipDueContainment(IsoformRegionGetter annot, String chr, int rstart, int rend, Boolean strand)
     {
         UPair<Integer> up = checkGeneContainment(annot, chr, rstart, rend, strand);
 
         return (up.getSecond() == 0 && up.getFirst() > 0);
     }
 
-    static UPair<Integer> checkGeneContainment(empires.rnaseq.IsoformRegionGetter annot, String chr, int rstart, int rend, Boolean strand)
+    static UPair<Integer> checkGeneContainment(IsoformRegionGetter annot, String chr, int rstart, int rend, Boolean strand)
     {
         Vector<Tuple3<String, Boolean, Region1D<String>>> reginfos = annot.getRegionInfos(chr, rstart, rend);
 
@@ -1184,11 +1185,11 @@ public class BAMIterator<A>
     }
     static class GeneCountInfo<A>
     {
-        empires.rnaseq.MultiIsoformRegion gene;
+        MultiIsoformRegion gene;
         Vector<ReadAnnotInfo<A>> counts = new Vector<>();
         Vector<ReadAnnotInfo<A>> ov_counts = new Vector<>();
 
-        public GeneCountInfo(empires.rnaseq.MultiIsoformRegion g)
+        public GeneCountInfo(MultiIsoformRegion g)
         {
             this.gene = gene;
         }
@@ -1203,7 +1204,7 @@ public class BAMIterator<A>
     {
         PriorityQueue<Integer> gene_pos_lookup =new PriorityQueue<>();
         HashMap<Integer, HashSet<GeneCountInfo<A>>> gene_counts = new HashMap<>();
-        HashMap<empires.rnaseq.MultiIsoformRegion, GeneCountInfo<A>> g2count = new HashMap<>();
+        HashMap<MultiIsoformRegion, GeneCountInfo<A>> g2count = new HashMap<>();
 
         String lastchr = null;
 
@@ -1222,7 +1223,7 @@ public class BAMIterator<A>
 
             clear(read.merged.getX1());
 
-            Collection<empires.rnaseq.MultiIsoformRegion> genes = null;
+            Collection<MultiIsoformRegion> genes = null;
             switch(read.getType())
             {
                 case TRANSCRIPTOMIC:
@@ -1329,7 +1330,7 @@ public class BAMIterator<A>
             MapBuilder.update(ci.counts, ar.getType());
 
             if(ar.info != null) {
-                Collection<empires.rnaseq.MultiIsoformRegion> genes = ar.info.TR_GENES.keySet();
+                Collection<MultiIsoformRegion> genes = ar.info.TR_GENES.keySet();
 
                 if (genes.size() == 0) {
                     genes = ar.info.MERGED_GENES;
@@ -1339,7 +1340,7 @@ public class BAMIterator<A>
                     genes = ar.info.INTRONIC_GENES;
                 }
 
-                for (empires.rnaseq.MultiIsoformRegion mir : genes) {
+                for (MultiIsoformRegion mir : genes) {
                     MapBuilder.update(ci.g2count, Pair.create(mir.id, ar.getType()));
                     if(write_readids)
                     {
@@ -1374,9 +1375,9 @@ public class BAMIterator<A>
 
     public enum STRANDNESS
     {
-        POS("yes"),
-        NEG("reverse"),
-        UNSPEC("no")
+        POS("true"),
+        NEG("false"),
+        UNSPEC("")
         ;
 
         String name;
@@ -1428,7 +1429,7 @@ public class BAMIterator<A>
         String strand = cmd.getOptionalValue("frstrand", null);
 
         if(cmd.isSet("getrrnareads")) {
-            BAMIterator<Integer> bam = new BAMIterator<>(new empires.rnaseq.GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null));
+            BAMIterator<Integer> bam = new BAMIterator<>(new GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null));
             bam.addBAM(0, cmd.getFile("bam"), null, null);
 
             int [] counts = new int[3];
@@ -1452,7 +1453,7 @@ public class BAMIterator<A>
                     continue;
 
 
-                empires.rnaseq.MultiIsoformRegion mir = first(ar.info.TR_GENES.keySet());
+                MultiIsoformRegion mir = first(ar.info.TR_GENES.keySet());
 
                 cu.update(mir.biotype, 1);
 
@@ -1477,7 +1478,7 @@ public class BAMIterator<A>
         if(cmd.isSet("getstrandness"))
         {
             int tocheck = cmd.getInt("nreadtocheck");
-            BAMIterator<Integer> bam = new BAMIterator<>(new empires.rnaseq.GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null));
+            BAMIterator<Integer> bam = new BAMIterator<>(new GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null));
             bam.addBAM(0, cmd.getFile("bam"), null, null);
 
 
@@ -1499,7 +1500,7 @@ public class BAMIterator<A>
                     continue;
 
 
-                empires.rnaseq.MultiIsoformRegion mir = first(ar.info.TR_GENES.keySet());
+                MultiIsoformRegion mir = first(ar.info.TR_GENES.keySet());
                 counts[(mir.strand == ar.fr_strand) ? 1 : 2]++;
 
                 if(++counts[0] >= tocheck)
@@ -1525,7 +1526,7 @@ public class BAMIterator<A>
 
         Vector<CountInfo> counts = new Vector<>();
         if(cmd.isOptionSet("bam")) {
-            BAMIterator<Integer> bam = new BAMIterator<>(new empires.rnaseq.GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null));
+            BAMIterator<Integer> bam = new BAMIterator<>(new GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null));
             bam.gobi_verbose = verbose;
             HashMap<Integer, PrintWriter> outmap = (onlycount) ? null : new HashMap<>();
             bam.addBAM(0, cmd.getFile("bam"), null, (strand == null) ? null : Boolean.parseBoolean(strand));
@@ -1562,7 +1563,7 @@ public class BAMIterator<A>
         File table = cmd.getOptionalFile("table");
         if(table != null)
         {
-            BAMIterator<String> bam = new BAMIterator<>(new empires.rnaseq.GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null));
+            BAMIterator<String> bam = new BAMIterator<>(new GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null));
             DataTable dt = DataTable.readFile(table, "\t");
 
             HashMap<String, PrintWriter> outmap = (onlycount) ? null : new HashMap<>();

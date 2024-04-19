@@ -1,9 +1,8 @@
-package empires.test.rnaseq;
+package nlEmpiRe.test.rnaseq;
 
-import empires.rnaseq.MultiIsoformRegion;
-import empires.rnaseq.simulation.SimulatedRead;
-import empires.rnaseq.simulation.SplicingSimulation;
 import lmu.utils.*;
+import nlEmpiRe.rnaseq.*;
+import nlEmpiRe.rnaseq.simulation.SplicingSimulation;
 
 
 import java.io.File;
@@ -16,8 +15,8 @@ import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
 
 public class FastQGenerator {
-    empires.rnaseq.GenomeSequenceExtractor gex;
-    empires.rnaseq.IsoformRegionGetter isoformRegionGetter;
+    GenomeSequenceExtractor gex;
+    IsoformRegionGetter isoformRegionGetter;
     File fastqOutDir = null;
     SplicingSimulation.ReadInReplicateConsumer readInReplicateConsumer;
     HashMap<Pair<String, Integer>, PrintWriter[]> fastqAndInfoMap = new HashMap<>();
@@ -50,7 +49,7 @@ public class FastQGenerator {
         writeInfoFile = b;
     }
 
-    public FastQGenerator(empires.rnaseq.IsoformRegionGetter isoformRegionGetter, File genome_fasta, File genome_idx, double mutation_rate) {
+    public FastQGenerator(IsoformRegionGetter isoformRegionGetter, File genome_fasta, File genome_idx, double mutation_rate) {
         this.isoformRegionGetter = isoformRegionGetter;
         this.mutation_rate = mutation_rate;
         setGenomeSequenceInfo(genome_fasta, genome_idx);
@@ -61,7 +60,7 @@ public class FastQGenerator {
         if (genome_fasta == null || genome_idx == null)
             return;
 
-        gex = new empires.rnaseq.GenomeSequenceExtractor(genome_fasta, genome_idx);
+        gex = new GenomeSequenceExtractor(genome_fasta, genome_idx);
     }
 
     BAMGenerator getBamWriter(String cond, int replicateId) {
@@ -160,7 +159,7 @@ public class FastQGenerator {
             Region1D rw_reg = _read.tr_rw.getRegion(0);
 
             String fw_read = trseq.substring(fw_reg.getX1(), fw_reg.getX2());
-            String rw_read = empires.rnaseq.GenomicUtils.reverse_complement(trseq.substring(rw_reg.getX1(), rw_reg.getX2()));
+            String rw_read = GenomicUtils.reverse_complement(trseq.substring(rw_reg.getX1(), rw_reg.getX2()));
 
 
             BAMGenerator bamGenerator  = getBamWriter(_cond, _repid);
@@ -168,7 +167,7 @@ public class FastQGenerator {
             Pair<String, Integer> key = Pair.create(_cond, _repid);
             int readId = fastqCount.getOrDefault(key, 0) + 1;
             if(bamGenerator != null) {
-                empires.rnaseq.MultiIsoformRegion gene = isoformRegionGetter.getRegionById(_read.gene);
+                MultiIsoformRegion gene = isoformRegionGetter.getRegionById(_read.gene);
                 bamGenerator.writeRecords(""+readId, fw_read, rw_read, QUALSTRING.substring(0 , fw_read.length()), gene.chr, gene.strand, _read.fw, _read.rw);
             }
             fastqCount.put(key, readId);
@@ -189,10 +188,10 @@ public class FastQGenerator {
         if (cached != null)
             return cached;
 
-        empires.rnaseq.MultiIsoformRegion mir = isoformRegionGetter.getRegionById(gene);
+        MultiIsoformRegion mir = isoformRegionGetter.getRegionById(gene);
         RegionVector trv = mir.isoforms.get(transcript);
         try {
-            String tseq = empires.rnaseq.GenomicUtils.getSplicedSeq(mir.chr, mir.strand, trv, gex, true);
+            String tseq = GenomicUtils.getSplicedSeq(mir.chr, mir.strand, trv, gex, true);
 
             //checkSeq(mir.id, transcript, tseq);
 
@@ -242,7 +241,7 @@ public class FastQGenerator {
         return mapping;
     }
 
-    public void writeMappingInfo(PrintWriter mapping, int readId, SimulatedRead read) {
+    public void writeMappingInfo(PrintWriter mapping, int readId, nlEmpiRe.rnaseq.simulation.SimulatedRead read) {
         if(mapping == null)
             return;
 

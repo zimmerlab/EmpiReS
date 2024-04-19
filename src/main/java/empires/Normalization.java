@@ -1,4 +1,4 @@
-package empires;
+package nlEmpiRe;
 
 import lmu.utils.*;
 
@@ -6,6 +6,7 @@ import java.util.*;
 
 import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class Normalization {
 

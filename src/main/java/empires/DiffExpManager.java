@@ -1,5 +1,6 @@
-package empires;
+package nlEmpiRe;
 
+import org.apache.logging.log4j.Logger;
 import lmu.utils.*;
 import lmu.utils.fdr.BenjaminiHochberg;
 
@@ -10,27 +11,27 @@ import static lmu.utils.ObjectGetter.*;
 
 public class DiffExpManager {
     Logger log = LogConfig.getLogger();
-    empires.EmpiRe empiRe;
+    EmpiRe empiRe;
     public Vector<String> totalFeatures;
-    public empires.NormalizedReplicateSet replicateSetFrom;
-    public empires.NormalizedReplicateSet replicateSetTo;
+    public NormalizedReplicateSet replicateSetFrom;
+    public NormalizedReplicateSet replicateSetTo;
     Vector<Double> med1;
     Vector<Double> med2;
     public Vector<Double> shifts;
-    HashMap<UPair<empires.ErrorEstimationDistribution>, empires.ErrorEstimationDistribution> diffDistributionMap = new HashMap<>();
+    HashMap<UPair<ErrorEstimationDistribution>, ErrorEstimationDistribution> diffDistributionMap = new HashMap<>();
 
 
 
-    public DiffExpManager(empires.NormalizedReplicateSet replicateSetFrom, empires.NormalizedReplicateSet replicateSetTo, Vector<String> totalFeatures, empires.EmpiRe empiRe) {
+    public DiffExpManager(NormalizedReplicateSet replicateSetFrom, NormalizedReplicateSet replicateSetTo, Vector<String> totalFeatures, EmpiRe empiRe) {
         this(replicateSetFrom, replicateSetTo, totalFeatures, empiRe, totalFeatures);
     }
-    public DiffExpManager(empires.NormalizedReplicateSet replicateSetFrom, NormalizedReplicateSet replicateSetTo, Vector<String> totalFeatures, EmpiRe empiRe, Vector<String> normFeatures) {
+    public DiffExpManager(NormalizedReplicateSet replicateSetFrom, NormalizedReplicateSet replicateSetTo, Vector<String> totalFeatures, EmpiRe empiRe, Vector<String> normFeatures) {
 
         log.info("will norm %s to %s on %d/%d features", replicateSetFrom.getInData().getReplicateSetName(), replicateSetTo.getInData().getReplicateSetName(),
                 normFeatures.size(), totalFeatures.size());
 
         this.totalFeatures = totalFeatures;
-        empires.Normalization norm = new Normalization(toVector(med1 = replicateSetFrom.getMedianValues(normFeatures), med2 = replicateSetTo.getMedianValues(normFeatures)));
+        Normalization norm = new Normalization(toVector(med1 = replicateSetFrom.getMedianValues(normFeatures), med2 = replicateSetTo.getMedianValues(normFeatures)));
         shifts = norm.getShifts();
 
         log.info("shift %s", shifts);
@@ -54,13 +55,13 @@ public class DiffExpManager {
         return normed;
     }
 
-    public empires.ErrorEstimationDistribution getDiffError(String feature) {
+    public ErrorEstimationDistribution getDiffError(String feature) {
         return getDiffError(replicateSetFrom.getError(feature), replicateSetTo.getError(feature));
     }
 
-    public synchronized empires.ErrorEstimationDistribution getDiffError(empires.ErrorEstimationDistribution from, empires.ErrorEstimationDistribution to) {
-        UPair<empires.ErrorEstimationDistribution> key = UPair.createU(from, to);
-        empires.ErrorEstimationDistribution cached = diffDistributionMap.get(key);
+    public synchronized ErrorEstimationDistribution getDiffError(ErrorEstimationDistribution from, ErrorEstimationDistribution to) {
+        UPair<ErrorEstimationDistribution> key = UPair.createU(from, to);
+        ErrorEstimationDistribution cached = diffDistributionMap.get(key);
         if(cached != null)
             return cached;
 
@@ -133,7 +134,7 @@ public class DiffExpManager {
 
     }
 
-    public Vector<Pair<empires.DiffExpResult, Double>> calculateNonDifferentialFDRs(Vector<empires.DiffExpResult> diffExpResults, double threshold) {
+    public Vector<Pair<DiffExpResult, Double>> calculateNonDifferentialFDRs(Vector<DiffExpResult> diffExpResults, double threshold) {
         if(threshold <= 0.0)
             throw new FRuntimeException("expected some positive number!");
 

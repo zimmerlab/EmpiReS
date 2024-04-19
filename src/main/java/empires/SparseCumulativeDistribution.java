@@ -1,4 +1,4 @@
-package empires;
+package nlEmpiRe;
 
 
 import lmu.utils.plotting.PlotCreator;
@@ -58,7 +58,7 @@ public class SparseCumulativeDistribution {
 
     }
 
-    public SparseCumulativeDistribution(empires.ErrorEstimationDistribution fcInfos) {
+    public SparseCumulativeDistribution(ErrorEstimationDistribution fcInfos) {
         this(fcInfos, 0.01);
     }
 

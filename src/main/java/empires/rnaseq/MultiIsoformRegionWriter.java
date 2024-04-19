@@ -1,4 +1,4 @@
-package empires.rnaseq;
+package nlEmpiRe.rnaseq;
 
 import lmu.utils.NumUtils;
 import lmu.utils.ObjectGetter;
@@ -23,9 +23,9 @@ public class MultiIsoformRegionWriter
         pw.printf("regionid\tname\tregiontype\tsrc\tchr\tstrand\tstart\tend\trvid\trvtype\tregvec\n");
     }
 
-    public void write(empires.rnaseq.MultiIsoformRegion g, String src)
+    public void write(MultiIsoformRegion g, String src)
     {
-        String prefix = String.format("%s\t%s\t%s\t%s\t%s\t%c\t%d\t%d", g.id, g.name, g.biotype, src, g.chr, empires.rnaseq.GenomicUtils.getStrand(g.strand), g.start, g.end);
+        String prefix = String.format("%s\t%s\t%s\t%s\t%s\t%c\t%d\t%d", g.id, g.name, g.biotype, src, g.chr, GenomicUtils.getStrand(g.strand), g.start, g.end);
         if (write_merged)
         {
             pw.printf("%s\t%s\t%s\t%s\n", prefix, g.id, g.biotype, g.getMergedTranscript().getSimpleRepresentation());
@@ -41,14 +41,14 @@ public class MultiIsoformRegionWriter
         }
     }
 
-    public void write(Vector<empires.rnaseq.GenomicRegionVector> grv)
+    public void write(Vector<GenomicRegionVector> grv)
     {
-        empires.rnaseq.GenomicRegionVector g = grv.get(0);
+        GenomicRegionVector g = grv.get(0);
         int start = NumUtils.min(grv, (rv) -> rv.getX1());
         int end = NumUtils.max(grv, (rv) -> rv.getX2());
 
 
-        String prefix = String.format("%s\t%s\t%s\t%s\t%s\t%c\t%d\t%d", g.getGene(), g.symbol, g.getType(), g.getSrc(), g.getChr(), empires.rnaseq.GenomicUtils.getStrand(g.getStrand()), start, end);
+        String prefix = String.format("%s\t%s\t%s\t%s\t%s\t%c\t%d\t%d", g.getGene(), g.symbol, g.getType(), g.getSrc(), g.getChr(), GenomicUtils.getStrand(g.getStrand()), start, end);
 
         if (write_merged)
         {

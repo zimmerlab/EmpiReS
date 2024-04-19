@@ -1,7 +1,7 @@
-package empires;
+package nlEmpiRe;
 
 import lmu.utils.LogConfig;
-import lmu.utils.Logger;
+import org.apache.logging.log4j.Logger;
 import lmu.utils.NumUtils;
 import lmu.utils.UPair;
 import org.apache.commons.math3.distribution.NormalDistribution;

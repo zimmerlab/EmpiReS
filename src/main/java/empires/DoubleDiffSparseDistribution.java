@@ -1,4 +1,4 @@
-package empires;
+package nlEmpiRe;
 
 import lmu.utils.UPair;
 
@@ -12,33 +12,33 @@ public class DoubleDiffSparseDistribution {
     public final static double[] PERCENT_DISTRIBUTION_COVERED_TESTS = {0.01, 0.2, 0.03, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4};
     public Vector<UPair<Double>> jointOverlapInfos = new Vector<>();
 
-    public empires.SparseCumulativeDistribution subSet1FoldChangeDistribution;
-    public empires.SparseCumulativeDistribution subSet2FoldChangeDistribution;
+    public SparseCumulativeDistribution subSet1FoldChangeDistribution;
+    public SparseCumulativeDistribution subSet2FoldChangeDistribution;
 
-    public empires.SparseCumulativeDistribution differenceFoldChangeDistribution;
+    public SparseCumulativeDistribution differenceFoldChangeDistribution;
 
 
-    public DoubleDiffSparseDistribution(empires.ErrorEstimationDistribution joint1, empires.ErrorEstimationDistribution joint2) {
-        empires.ErrorEstimationDistribution diffJoint = empires.ErrorEstimationDistribution.substract(joint1, joint2);
+    public DoubleDiffSparseDistribution(ErrorEstimationDistribution joint1, ErrorEstimationDistribution joint2) {
+        ErrorEstimationDistribution diffJoint = ErrorEstimationDistribution.substract(joint1, joint2);
 
-        subSet1FoldChangeDistribution = new empires.SparseCumulativeDistribution(joint1);
-        subSet2FoldChangeDistribution = new empires.SparseCumulativeDistribution(joint2);
+        subSet1FoldChangeDistribution = new SparseCumulativeDistribution(joint1);
+        subSet2FoldChangeDistribution = new SparseCumulativeDistribution(joint2);
 
         differenceFoldChangeDistribution = new SparseCumulativeDistribution(diffJoint);
 
         calcOverlaps(joint1, joint2);
     }
-    public DoubleDiffSparseDistribution(Collection<String> set1, empires.NormalizedReplicateSet replicateSet1,
+    public DoubleDiffSparseDistribution(Collection<String> set1, NormalizedReplicateSet replicateSet1,
                                         Collection<String> set2, NormalizedReplicateSet replicateSet2) {
 
-        this(new empires.ErrorEstimationDistribution(map(set1, (_m) -> replicateSet1.getError(_m)), map(set1, (_m) -> replicateSet1.getNormed(_m).mean)),
-            new empires.ErrorEstimationDistribution(map(set2, (_m) -> replicateSet2.getError(_m)), map(set1, (_m) -> replicateSet2.getNormed(_m).mean))
+        this(new ErrorEstimationDistribution(map(set1, (_m) -> replicateSet1.getError(_m)), map(set1, (_m) -> replicateSet1.getNormed(_m).mean)),
+            new ErrorEstimationDistribution(map(set2, (_m) -> replicateSet2.getError(_m)), map(set1, (_m) -> replicateSet2.getNormed(_m).mean))
         );
 
     }
 
     /** get the distribution of percent overlaps of the joint distributions */
-    void calcOverlaps(empires.ErrorEstimationDistribution joint1, ErrorEstimationDistribution joint2) {
+    void calcOverlaps(ErrorEstimationDistribution joint1, ErrorEstimationDistribution joint2) {
         /*
 
                 |-----iv1 --------|

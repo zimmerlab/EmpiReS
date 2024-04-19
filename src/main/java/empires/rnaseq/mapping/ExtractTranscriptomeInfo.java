@@ -1,9 +1,9 @@
-package empires.rnaseq.mapping;
+package nlEmpiRe.rnaseq.mapping;
 
-import empires.rnaseq.IsoformRegionGetter;
 import lmu.utils.*;
-
+import nlEmpiRe.rnaseq.*;
 import java.util.*;
+import org.apache.logging.log4j.Logger;
 
 public class ExtractTranscriptomeInfo {
 
@@ -35,18 +35,18 @@ public class ExtractTranscriptomeInfo {
 
         int MINLENGTH = cmd.getInt("minlength");
         Logger log = LogConfig.getLogger();
-        IsoformRegionGetter annot = new empires.rnaseq.GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null);
+        IsoformRegionGetter annot = new GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null);
 
-        empires.rnaseq.GenomeSequenceExtractor gex = new empires.rnaseq.GenomeSequenceExtractor(cmd.getFile("genome"), cmd.getFile("genomeidx"));
+        GenomeSequenceExtractor gex = new GenomeSequenceExtractor(cmd.getFile("genome"), cmd.getFile("genomeidx"));
 
         char SPACER = ' ';
         StringBuilder sb = new StringBuilder();
-        List<empires.rnaseq.mapping.TranscriptInfo> transcriptInfoList = new ArrayList<>();
+        List<TranscriptInfo> transcriptInfoList = new ArrayList<>();
         List<String> checkseqs = new ArrayList<>();
 
         HashSet<String> skipped_chrs = new HashSet<>();
         HashMap<String, Integer> biotypes = new HashMap<>();
-        for(empires.rnaseq.MultiIsoformRegion mir : annot.getRegionsIteratble()) {
+        for(MultiIsoformRegion mir : annot.getRegionsIteratble()) {
 
             if(!gex.gotChr(mir.chr)) {
                 if(!skipped_chrs.contains(mir.chr)) {
@@ -66,11 +66,11 @@ public class ExtractTranscriptomeInfo {
 
                 MapBuilder.update(biotypes, mir.iso2biotype.getOrDefault(trId, mir.biotype));
 
-                empires.rnaseq.mapping.TranscriptInfo transcriptInfo = new TranscriptInfo(mir, trId, sb.length(), transcriptInfoList.size());
+                TranscriptInfo transcriptInfo = new TranscriptInfo(mir, trId, sb.length(), transcriptInfoList.size());
                 if(transcriptInfo.length < MINLENGTH)
                     continue;
 
-                String tseq = empires.rnaseq.GenomicUtils.getSplicedSeq(mir.chr, mir.strand, transcriptInfo.rv, gex, true);
+                String tseq = GenomicUtils.getSplicedSeq(mir.chr, mir.strand, transcriptInfo.rv, gex, true);
 
                 transcriptInfoList.add(transcriptInfo);
 

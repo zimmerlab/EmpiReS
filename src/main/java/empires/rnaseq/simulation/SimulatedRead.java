@@ -1,9 +1,10 @@
-package empires.rnaseq.simulation;
+package nlEmpiRe.rnaseq.simulation;
 
 import lmu.utils.FRuntimeException;
 import lmu.utils.Region1D;
 import lmu.utils.RegionVector;
 import lmu.utils.UPair;
+import org.apache.commons.math3.distribution.NormalDistribution;
 
 import java.util.HashMap;
 import java.util.HashSet;

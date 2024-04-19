@@ -1,4 +1,4 @@
-package empires;
+package nlEmpiRe;
 
 
 import lmu.utils.*;
@@ -14,19 +14,20 @@ import java.util.function.Function;
 
 import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class DoubleDiffManager {
 
     Logger log = LogConfig.getLogger();
 
-    empires.NormalizedReplicateSet fromSet;
-    empires.NormalizedReplicateSet toSet;
+    NormalizedReplicateSet fromSet;
+    NormalizedReplicateSet toSet;
     DiffExpManager diffExpManager;
 
     HashMap<String, Vector<Double>> fromSetWithPseudo = new HashMap<>();
     HashMap<String, Vector<Double>> toSetWithPseudo = new HashMap<>();
 
-    protected DoubleDiffManager(empires.NormalizedReplicateSet fromSet, NormalizedReplicateSet toSet, DiffExpManager diffExpManager) {
+    protected DoubleDiffManager(NormalizedReplicateSet fromSet, NormalizedReplicateSet toSet, DiffExpManager diffExpManager) {
         this.fromSet = fromSet;
         this.toSet = toSet;
         this.diffExpManager = diffExpManager;
@@ -78,7 +79,7 @@ public class DoubleDiffManager {
 
         HashMap<String, SingleFeatureDiffExp> featureDiffExpLookup = null; //buildMap(features, (_f) -> new SingleFeatureDiffExp(diffExpManager, _f));
 
-        HashMap<Tuple, empires.DiffExpResult>  cachedDiffExps = new HashMap<>();
+        HashMap<Tuple, DiffExpResult>  cachedDiffExps = new HashMap<>();
 
 
 
@@ -93,7 +94,7 @@ public class DoubleDiffManager {
         return doubleDiffResults;
     }
 
-    public DoubleDiffResult getDoubleDiffResult(String testname, Vector<empires.FeatureInfo> features1, Vector<empires.FeatureInfo> features2, DoubleDiffVariant doubleDiffVariant) {
+    public DoubleDiffResult getDoubleDiffResult(String testname, Vector<FeatureInfo> features1, Vector<FeatureInfo> features2, DoubleDiffVariant doubleDiffVariant) {
         switch (doubleDiffVariant) {
             case QUICK_AND_DIRTY:
                 return getDoubleDiffResultFromFeatureInfos(testname, features1, features2);
@@ -108,8 +109,8 @@ public class DoubleDiffManager {
                                                 HashSet<UPair<String>> pairs2skip, Function<String, ErrorEstimationDistribution> errorGetter,
                                                 boolean verbose,  DoubleDiffVariant doubleDiffVariant) {
 
-        Vector<empires.FeatureInfo> m1 = map(subMeasurementSet1, (_m) -> new empires.FeatureInfo(_m, diffExpManager.replicateSetFrom, diffExpManager.replicateSetTo));
-        Vector<empires.FeatureInfo> m2 = map(subMeasurementSet2, (_m) -> new empires.FeatureInfo(_m, diffExpManager.replicateSetFrom, diffExpManager.replicateSetTo));
+        Vector<FeatureInfo> m1 = map(subMeasurementSet1, (_m) -> new FeatureInfo(_m, diffExpManager.replicateSetFrom, diffExpManager.replicateSetTo));
+        Vector<FeatureInfo> m2 = map(subMeasurementSet2, (_m) -> new FeatureInfo(_m, diffExpManager.replicateSetFrom, diffExpManager.replicateSetTo));
 
         DoubleDiffResult ddr = getDoubleDiffResult(testname, m1, m2, doubleDiffVariant);
 
@@ -122,7 +123,7 @@ public class DoubleDiffManager {
 
     int[] tests = new int[2];
 
-    public DoubleDiffResult getDoubleDiffResultFromFeatureInfosByDistributionDifference(String testname, Collection<empires.FeatureInfo> subMeasurementSet1, Collection<empires.FeatureInfo> subMeasurementSet2) {
+    public DoubleDiffResult getDoubleDiffResultFromFeatureInfosByDistributionDifference(String testname, Collection<FeatureInfo> subMeasurementSet1, Collection<FeatureInfo> subMeasurementSet2) {
 
         log.info("start: %s\n", testname);
 
@@ -130,10 +131,10 @@ public class DoubleDiffManager {
             tests[0]++;
         }
         Vector<SingleFeatureDiffExp> fromSingles = map(subMeasurementSet1, (_f) -> new SingleFeatureDiffExp(_f.feature,  _f.cond1,  _f.err1,_f.cond2, _f.err2, diffExpManager));
-        empires.DiffExpResult fromDiffExp = new empires.DiffExpResult(diffExpManager, testname+".set1", fromSingles, true);
+        DiffExpResult fromDiffExp = new DiffExpResult(diffExpManager, testname+".set1", fromSingles, true);
         Vector<SingleFeatureDiffExp> toSingles = map(subMeasurementSet2, (_f) -> new SingleFeatureDiffExp(_f.feature,  _f.cond1,  _f.err1,_f.cond2, _f.err2, diffExpManager));
 
-        empires.DiffExpResult toDiffExp = new DiffExpResult(diffExpManager, testname+".set2", toSingles, true);
+        DiffExpResult toDiffExp = new DiffExpResult(diffExpManager, testname+".set2", toSingles, true);
 
 
         DoubleDiffResult res = new DoubleDiffResult(testname,  map(subMeasurementSet1, (_s) -> _s.feature), diffExpManager.replicateSetFrom, map(subMeasurementSet2, (_s) -> _s.feature), diffExpManager.replicateSetTo, diffExpManager);
@@ -187,7 +188,7 @@ public class DoubleDiffManager {
     }
 
 
-    public DoubleDiffResult getDoubleDiffResultAllPairs(String testname, Collection<empires.FeatureInfo> subMeasurementSet1, Collection<empires.FeatureInfo> subMeasurementSet2) {
+    public DoubleDiffResult getDoubleDiffResultAllPairs(String testname, Collection<FeatureInfo> subMeasurementSet1, Collection<FeatureInfo> subMeasurementSet2) {
         DoubleDiffResult result = new DoubleDiffResult(testname, null, fromSet, null, toSet, diffExpManager);
 
         result.pval = 1.0;
@@ -203,25 +204,25 @@ public class DoubleDiffManager {
         double totalVariance = 0.0;
         double evidenceZTotal = 0.0;
 
-        Vector<UPair<empires.FeatureInfo>> featurePairs = getPairs(toVector(subMeasurementSet1), toVector(subMeasurementSet2));
+        Vector<UPair<FeatureInfo>> featurePairs = getPairs(toVector(subMeasurementSet1), toVector(subMeasurementSet2));
 
-        HashMap<empires.FeatureInfo, Vector<UPair<empires.FeatureInfo>> > feature2pairs = new HashMap<>();
-        HashMap<UPair<empires.FeatureInfo>, Vector<Vector<Integer>>> featurepair2indeces = new HashMap<>();
+        HashMap<FeatureInfo, Vector<UPair<FeatureInfo>> > feature2pairs = new HashMap<>();
+        HashMap<UPair<FeatureInfo>, Vector<Vector<Integer>>> featurepair2indeces = new HashMap<>();
 
 
-        HashMap<empires.FeatureInfo, UsableReplicates> feature2usable = new HashMap<>();
+        HashMap<FeatureInfo, UsableReplicates> feature2usable = new HashMap<>();
         for(int i=0; i<2; i++) {
-            for(empires.FeatureInfo f : (i == 0) ? subMeasurementSet1 : subMeasurementSet2) {
+            for(FeatureInfo f : (i == 0) ? subMeasurementSet1 : subMeasurementSet2) {
                 feature2usable.put(f, new UsableReplicates(f.getCond1LogVals(), f.getCond2LogVals()));
             }
         }
 
-        for(UPair<empires.FeatureInfo> featureInfoPair : featurePairs) {
+        for(UPair<FeatureInfo> featureInfoPair : featurePairs) {
 
-            empires.FeatureInfo f1 = featureInfoPair.getFirst();
-            empires.FeatureInfo f2 = featureInfoPair.getSecond();
+            FeatureInfo f1 = featureInfoPair.getFirst();
+            FeatureInfo f2 = featureInfoPair.getSecond();
             UsableReplicates ur1 = feature2usable.get(f1);
-            UsableReplicates ur2 = feature2usable.get(f2);
+            UsableReplicates ur2 = feature2usable.get(f1);
 
             MapBuilder.updateV(feature2pairs, f1, featureInfoPair);
             MapBuilder.updateV(feature2pairs, f2, featureInfoPair);
@@ -260,9 +261,6 @@ public class DoubleDiffManager {
                     for (int rep21idx : ur2.rep1indeces) {
                         for (int rep22idx : ur2.rep2indeces) {
                             double diffdiffFC = (f1.getCond1LogVals().get(rep11idx) - f1.getCond2LogVals().get(rep12idx)) - (f2.getCond1LogVals().get(rep21idx) - f2.getCond2LogVals().get(rep22idx));
-                            result.f1meanFC += (f1.getCond1LogVals().get(rep11idx) - f1.getCond2LogVals().get(rep12idx));
-                            result.f2meanFC += (f2.getCond1LogVals().get(rep21idx) - f2.getCond2LogVals().get(rep22idx));
-
                             result.meanFC += diffdiffFC;
                             double z0 = diffBG.getConvertedZscore(diffdiffFC);
                             evidenceZTotal += z0;
@@ -276,7 +274,7 @@ public class DoubleDiffManager {
         }
 
 
-        for(UPair<empires.FeatureInfo> pair : featurePairs) {
+        for(UPair<FeatureInfo> pair : featurePairs) {
             Vector<Vector<Integer>> indeces = featurepair2indeces.get(pair);
             if(indeces == null)
                 continue;
@@ -289,13 +287,13 @@ public class DoubleDiffManager {
             double pair1SD = Math.sqrt(pbg1.getVariance() + pbg2.getVariance());
 
             for(int overlapIdx = 0; overlapIdx < 2; overlapIdx++) {
-                empires.FeatureInfo center = pair.get(overlapIdx == 0);
+                FeatureInfo center = pair.get(overlapIdx == 0);
 
                 double c1var = diffExpManager.replicateSetFrom.getError(center.feature).getVariance();
                 double c2var = diffExpManager.replicateSetTo.getError(center.feature).getVariance();
 
 
-                for(UPair<empires.FeatureInfo> overlap : filter(feature2pairs.get(center), (_pair) -> !_pair.equals(pair))) {
+                for(UPair<FeatureInfo> overlap : filter(feature2pairs.get(center), (_pair) -> !_pair.equals(pair))) {
 
                     ErrorEstimationDistribution obg1 = diffExpManager.getDiffError(overlap.getFirst().feature);
                     ErrorEstimationDistribution obg2 = diffExpManager.getDiffError(overlap.getSecond().feature);
@@ -334,8 +332,6 @@ public class DoubleDiffManager {
             return  result;
 
         result.meanFC /= numObservations;
-        result.f1meanFC /= numObservations;
-        result.f2meanFC /= numObservations;
 
         NormalDistribution pepN = new NormalDistribution(0, Math.sqrt(totalVariance) ); //we will test only the right side (from zero = absolute) -> the variance is the half of it
         result.pval =  2.0 * (1.0 - pepN.cumulativeProbability(Math.abs(evidenceZTotal)));
@@ -343,7 +339,7 @@ public class DoubleDiffManager {
         return result;
     }
 
-    public DoubleDiffResult getDoubleDiffResultFromFeatureInfosRespectMissingValues(String testname, Collection<empires.FeatureInfo> subMeasurementSet1, Collection<empires.FeatureInfo> subMeasurementSet2) {
+    public DoubleDiffResult getDoubleDiffResultFromFeatureInfosRespectMissingValues(String testname, Collection<FeatureInfo> subMeasurementSet1, Collection<FeatureInfo> subMeasurementSet2) {
         DoubleDiffResult result = new DoubleDiffResult(testname, null, fromSet, null, toSet, diffExpManager);
 
         result.featureInfos1 = subMeasurementSet1;
@@ -359,23 +355,23 @@ public class DoubleDiffManager {
         double evidenceZTotal = 0.0;
 
         final HashMap<ErrorEstimationDistribution, Integer> EMPTY  = new HashMap<>();
-        HashMap<empires.FeatureInfo, HashMap<ErrorEstimationDistribution, Integer>> mes2bg2numUsed = new HashMap<>();
+        HashMap<FeatureInfo, HashMap<ErrorEstimationDistribution, Integer>> mes2bg2numUsed = new HashMap<>();
 
-        HashMap<UPair<empires.FeatureInfo>, UPair<Vector<Integer>>> featurepair2usable = new HashMap<>();
-        HashMap<empires.FeatureInfo, Vector<UPair<empires.FeatureInfo>>> feature2pairs = new HashMap<>();
-        Vector<UPair<empires.FeatureInfo>> fpairs = new Vector<>();
+        HashMap<UPair<FeatureInfo>, UPair<Vector<Integer>>> featurepair2usable = new HashMap<>();
+        HashMap<FeatureInfo, Vector<UPair<FeatureInfo>>> feature2pairs = new HashMap<>();
+        Vector<UPair<FeatureInfo>> fpairs = new Vector<>();
 
         int numFcsCalced = 0;
 
 
-        for(empires.FeatureInfo feature1 : subMeasurementSet1) {
+        for(FeatureInfo feature1 : subMeasurementSet1) {
             ErrorEstimationDistribution bg1 = diffExpManager.getDiffError(feature1.err1, feature1.err2);
 
             //log.info("from: %s to: %s feature1: %s normed: %s,%s", fromSet, toSet, feature1, fromSet.getNormed(feature1), toSet.getNormed(feature1));
             Vector<Double> m1_rep1_logvals = feature1.getCond1LogVals();
             Vector<Double> m1_rep2_logvals = feature1.getCond2LogVals();
 
-            for(empires.FeatureInfo feature2 : subMeasurementSet2) {
+            for(FeatureInfo feature2 : subMeasurementSet2) {
 
                 ErrorEstimationDistribution bg2 = diffExpManager.getDiffError(feature2.err1, feature2.err2);
 
@@ -394,7 +390,7 @@ public class DoubleDiffManager {
                     continue;
 
 
-                UPair<empires.FeatureInfo> fpair = UPair.createU(feature1, feature2);
+                UPair<FeatureInfo> fpair = UPair.createU(feature1, feature2);
                 fpairs.add(fpair);
                 featurepair2usable.put(fpair, UPair.createU(rep1_diff_usable, rep2_diff_usable));
                 MapBuilder.updateV(feature2pairs, feature1, fpair);
@@ -440,7 +436,7 @@ public class DoubleDiffManager {
 
         result.meanFC /= numFcsCalced;
 
-        for(UPair<empires.FeatureInfo> pair : fpairs) {
+        for(UPair<FeatureInfo> pair : fpairs) {
             UPair<Vector<Integer>> indeces = featurepair2usable.get(pair);
             if(indeces == null)
                 continue;
@@ -449,12 +445,12 @@ public class DoubleDiffManager {
             double pair1SD = Math.sqrt(bg1.getVariance());
 
             for(int overlapIdx = 0; overlapIdx < 2; overlapIdx++) {
-                empires.FeatureInfo center = pair.get(overlapIdx == 0);
+                FeatureInfo center = pair.get(overlapIdx == 0);
 
                 double c1var = center.err1.getVariance();
                 double c2var = center.err2.getVariance();
 
-                for(UPair<empires.FeatureInfo> overlap : filter(feature2pairs.get(center), (_pair) -> !_pair.equals(pair))) {
+                for(UPair<FeatureInfo> overlap : filter(feature2pairs.get(center), (_pair) -> !_pair.equals(pair))) {
 
                     ErrorEstimationDistribution bg2 = diffExpManager.getDiffError(overlap.getFirst().err1, overlap.getFirst().err2);
                     double pair2SD = Math.sqrt(bg2.getVariance());
@@ -490,7 +486,7 @@ public class DoubleDiffManager {
     }
 
 
-    public DoubleDiffResult getDoubleDiffResultFromFeatureInfos(String testname, Collection<empires.FeatureInfo> subMeasurementSet1, Collection<empires.FeatureInfo> subMeasurementSet2) {
+    public DoubleDiffResult getDoubleDiffResultFromFeatureInfos(String testname, Collection<FeatureInfo> subMeasurementSet1, Collection<FeatureInfo> subMeasurementSet2) {
 
          DoubleDiffResult result = new DoubleDiffResult(testname, null, fromSet, null, toSet, diffExpManager);
 
@@ -531,19 +527,19 @@ public class DoubleDiffManager {
         double totalVariance = 0.0;
 
         final HashMap<ErrorEstimationDistribution, Integer> EMPTY  = new HashMap<>();
-        HashMap<empires.FeatureInfo, HashMap<ErrorEstimationDistribution, Integer>> mes2bg2numUsed = new HashMap<>();
-        HashSet<UPair<empires.FeatureInfo>> usable = new HashSet<>();
+        HashMap<FeatureInfo, HashMap<ErrorEstimationDistribution, Integer>> mes2bg2numUsed = new HashMap<>();
+        HashSet<UPair<FeatureInfo>> usable = new HashSet<>();
 
 
         int numFcsCalced = 0;
-        for(empires.FeatureInfo feature1 : subMeasurementSet1) {
+        for(FeatureInfo feature1 : subMeasurementSet1) {
             ErrorEstimationDistribution bg1 = diffExpManager.getDiffError(feature1.err1, feature1.err2);
 
             //log.info("from: %s to: %s feature1: %s normed: %s,%s", fromSet, toSet, feature1, fromSet.getNormed(feature1), toSet.getNormed(feature1));
             Vector<Double> m1_rep1_logvals = feature1.getCond1LogVals();
             Vector<Double> m1_rep2_logvals = feature1.getCond2LogVals();
 
-            for(empires.FeatureInfo feature2 : subMeasurementSet2) {
+            for(FeatureInfo feature2 : subMeasurementSet2) {
 
                 ErrorEstimationDistribution bg2 = diffExpManager.getDiffError(feature2.err1, feature2.err2);
 
@@ -622,7 +618,7 @@ public class DoubleDiffManager {
 
         result.meanFC /= numFcsCalced;
 
-        for(UPair<empires.FeatureInfo> pair : usable) {
+        for(UPair<FeatureInfo> pair : usable) {
             ErrorEstimationDistribution bg1 = diffExpManager.getDiffError(pair.getFirst().err1, pair.getFirst().err2);
             ErrorEstimationDistribution bg2 = diffExpManager.getDiffError(pair.getSecond().err1, pair.getSecond().err2);
 
@@ -700,7 +696,7 @@ public class DoubleDiffManager {
     class CorrelationCache{
         HashMap<Tuple4<ErrorEstimationDistribution, ErrorEstimationDistribution, ErrorEstimationDistribution, Boolean>, Double> cache = new HashMap<>();
 
-        CorrelationCache(Collection<empires.FeatureInfo> obj1Measurements, Collection<FeatureInfo> obj2Measurements) {
+        CorrelationCache(Collection<FeatureInfo> obj1Measurements, Collection<FeatureInfo> obj2Measurements) {
             HashSet<ErrorEstimationDistribution> bgset1 = mapToSet(obj1Measurements, (_m) -> diffExpManager.getDiffError(_m.err1, _m.err2));
             HashSet<ErrorEstimationDistribution> bgset2 = mapToSet(obj2Measurements, (_m) -> diffExpManager.getDiffError(_m.err1, _m.err2));
 

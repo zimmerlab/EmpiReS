@@ -1,4 +1,4 @@
-package empires.rnaseq.simulation;
+package nlEmpiRe.rnaseq.simulation;
 
 import lmu.utils.*;
 
@@ -6,11 +6,12 @@ import java.util.*;
 
 import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class ScalableTranscriptInfo {
     Logger log = LogConfig.getLogger();
     int length;
-    TreeMap<Integer, empires.rnaseq.simulation.FixedLengthFragmentProbability> length2info = new TreeMap<>();
+    TreeMap<Integer, FixedLengthFragmentProbability> length2info = new TreeMap<>();
 
 
     ScalableTranscriptInfo(int[] input, int[] input_cumulative, int targetlength, int readLength, int maxLength) {
@@ -178,7 +179,7 @@ public class ScalableTranscriptInfo {
 
         for(int length : length2total.keySet()) {
             double prob = length2total.get(length) * norm;
-            empires.rnaseq.simulation.FixedLengthFragmentProbability flp = new FixedLengthFragmentProbability(length, prob);
+            FixedLengthFragmentProbability flp = new FixedLengthFragmentProbability(length, prob);
             for(UPair<Integer> fr : length2variants.get(length)) {
                 flp.add(fr, start2end2req.get(fr));
             }

@@ -1,18 +1,18 @@
-package empires.test.rnaseq;
+package nlEmpiRe.test.rnaseq;
 
-import empires.EmpiRe;
-import empires.input.EBROWSER_INPUT;
-import empires.input.RNASeqSplicingInfo;
-import empires.input.ReplicateSetInfo;
-import empires.rnaseq.GFFBasedIsoformRegionGetter;
-import empires.rnaseq.IsoformRegionGetter;
-import empires.rnaseq.MultiIsoformRegion;
-import empires.rnaseq.SplicingTest;
 import lmu.utils.*;
 import lmu.utils.fdr.PerformanceResult;
 import lmu.utils.plotting.*;
 import lmu.utils.swing.PagedDataTable;
+import nlEmpiRe.*;
+import nlEmpiRe.input.EBROWSER_INPUT;
+import nlEmpiRe.input.RNASeqSplicingInfo;
+import nlEmpiRe.input.ReplicateSetInfo;
 import lmu.utils.plotting.CachedPlotCreator;
+import nlEmpiRe.rnaseq.GFFBasedIsoformRegionGetter;
+import nlEmpiRe.rnaseq.IsoformRegionGetter;
+import nlEmpiRe.rnaseq.MultiIsoformRegion;
+import nlEmpiRe.rnaseq.SplicingTest;
 import org.apache.commons.math3.distribution.NormalDistribution;
 
 import java.awt.*;
@@ -23,13 +23,14 @@ import java.util.function.Function;
 
 import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class GenerateTrCounts {
 
     Logger log = LogConfig.getLogger();
     Vector<String> features = new Vector<>();
-    empires.input.ReplicateSetInfo baseCondition;
-    empires.NormalizedReplicateSet normalizedBaseCondition;
+    ReplicateSetInfo baseCondition;
+    NormalizedReplicateSet normalizedBaseCondition;
     HashMap<String, Vector<Integer>> tr2counts1 = new HashMap<>();
     HashMap<String, Vector<Integer>> tr2counts2 = new HashMap<>();
     Vector<Pair<Double, String>> logmean2featureName ;
@@ -179,12 +180,12 @@ public class GenerateTrCounts {
             tr2counts2.put(tr, c2);
         }
 
-        baseCondition = new empires.input.ReplicateSetInfo("c1",  map(rangev(dataC1.size()), (_i) -> "C1R" + (1 + _i)), features);
+        baseCondition = new ReplicateSetInfo("c1",  map(rangev(dataC1.size()), (_i) -> "C1R" + (1 + _i)), features);
         for(int i=0; i<dataC1.size(); i++) {
             baseCondition.setLog2Data(i, data.get(i));
         }
 
-        normalizedBaseCondition = new empires.NormalizedReplicateSet(baseCondition);
+        normalizedBaseCondition = new NormalizedReplicateSet(baseCondition);
 
         logmean2featureName = NumUtils.sort(map_and_filter(features, (_f) -> Pair.create(normalizedBaseCondition.getNormed(_f).mean, _f), (_p) -> _p.getFirst() > 0.0), (_p) -> _p.getFirst(), false);
 
@@ -420,7 +421,7 @@ public class GenerateTrCounts {
         HashMap<String, Vector<String>> refgene2tr = new HashMap<>();
         HashMap<String, String> tr2gene = new HashMap<>();
 
-        empires.rnaseq.GFFBasedIsoformRegionGetter gtf = new GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null);
+        GFFBasedIsoformRegionGetter gtf = new GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null);
 
 
 
@@ -503,7 +504,7 @@ public class GenerateTrCounts {
         HashMap<String, HashMap<String, Double>> g2tr2fc = new HashMap<>();
 
         int numUnchangingMajor = 0;
-        for(int i=0; i<diffsplicids.size(); i+=2) {
+        for(int i=0; i<diffsplicids.size() - 1; i+=2) {
             String g1 = diffsplicids.get(i);
             String g2 = diffsplicids.get(i+1);
 
@@ -579,7 +580,7 @@ public class GenerateTrCounts {
                     double fcdiff = FC - baseFC;
                     difffcs.put(g1_tr, fcdiff);
                 }
-                System.out.printf("wanted change: %.2f got: %.2f\n", FC, gotFC);
+                System.out.printf("%d / %d wanted change: %.2f got: %.2f\n", i, diffsplicids.size(), FC, gotFC);
 
                 info_pw.printf("%s\t%s\t%s\t%.2f\t%s\tDIFFSPLIC\n", g1, g1_tr, isoformType, gotFC, f1);
                 info_pw.printf("%s\t%s\t%s\t%.2f\t%s\tDIFFSPLIC\n", g2, g2_tr, isoformType, -gotFC, f2);
@@ -634,8 +635,8 @@ public class GenerateTrCounts {
         Vector<Double> diffs = new Vector<>();
 
         //log.info("will simulate  %d  x 2 diff trs with step: %d", ntotal, step);
-        for(int i=0; i<diffvec.size(); i+=2) {
-            double FC = ((Math.random() < 0.5) ? 1 : -1) * (MINIMUM_FC + Math.abs(foldChangeGetter.sample()));
+        for(int i=0; i<diffvec.size() - 1; i+=2) {
+            double FC = ((Math.random() < 0.5) ? 1 : -1) * (MINIMUM_FC + 0.25 + Math.abs(foldChangeGetter.sample()));
             String g1 = diffvec.get(i);
             String g2 = diffvec.get(i+1);
 
@@ -672,8 +673,10 @@ public class GenerateTrCounts {
 
             }
 
-            if(real_fcs.size() == 1)
+            if(real_fcs.size() == 1){
+                diffs.add(real_fcs.get(0));
                 continue;
+            }
 
             Collections.sort(real_fcs);
             double maxfcdiff = real_fcs.get(real_fcs.size() - 1) - real_fcs.get(0);
@@ -807,18 +810,18 @@ public class GenerateTrCounts {
             }
         }
 
-        empires.input.ReplicateSetInfo gene_rs1 = new empires.input.ReplicateSetInfo("C1", rep1names, genefeatures);
-        empires.input.ReplicateSetInfo gene_rs2 = new empires.input.ReplicateSetInfo("C2", rep2names, genefeatures);
+        ReplicateSetInfo gene_rs1 = new ReplicateSetInfo("C1", rep1names, genefeatures);
+        ReplicateSetInfo gene_rs2 = new ReplicateSetInfo("C2", rep2names, genefeatures);
 
-        empires.input.ReplicateSetInfo rs1 = new empires.input.ReplicateSetInfo("C1", rep1names, nfeatures);
-        empires.input.ReplicateSetInfo rs2 = new empires.input.ReplicateSetInfo("C2", rep2names, nfeatures);
+        ReplicateSetInfo rs1 = new ReplicateSetInfo("C1", rep1names, nfeatures);
+        ReplicateSetInfo rs2 = new ReplicateSetInfo("C2", rep2names, nfeatures);
 
         HashMap<String, Vector<String>> condition2replicatenames = new HashMap<>();
         condition2replicatenames.put(rs1.getReplicateSetName(), rs1.getReplicateNames());
         condition2replicatenames.put(rs2.getReplicateSetName(), rs2.getReplicateNames());
 
         for(int c = 0; c<2; c++){
-            empires.input.ReplicateSetInfo target = (c == 0) ? rs1 : rs2;
+            ReplicateSetInfo target = (c == 0) ? rs1 : rs2;
             Vector<Vector<Double>> data = (c == 0) ? vals1 : vals2;
 
             ReplicateSetInfo gene_target = (c == 0) ? gene_rs1 : gene_rs2;
@@ -829,10 +832,10 @@ public class GenerateTrCounts {
             }
         }
 
-        empires.NormalizedReplicateSet g_nrs1 = new empires.NormalizedReplicateSet(gene_rs1);
-        empires.NormalizedReplicateSet g_nrs2 = new empires.NormalizedReplicateSet(gene_rs2);
-        empires.EmpiRe empiRe = new empires.EmpiRe();
-        Vector<empires.DiffExpResult> diffExpResults = filter(empiRe.getDifferentialResults(g_nrs1, g_nrs2), (_d) -> !Ndiffsplic.contains(_d.combinedFeatureName));
+        NormalizedReplicateSet g_nrs1 = new NormalizedReplicateSet(gene_rs1);
+        NormalizedReplicateSet g_nrs2 = new NormalizedReplicateSet(gene_rs2);
+        EmpiRe empiRe = new EmpiRe();
+        Vector<DiffExpResult> diffExpResults = filter(empiRe.getDifferentialResults(g_nrs1, g_nrs2), (_d) -> !Ndiffsplic.contains(_d.combinedFeatureName));
         //new DiffExpTable(g_nrs1, g_nrs2, diffExpResults).showInteractiveTable(Pair.create("true", (_d) -> Ndiffexp.contains(_d.combinedFeatureName)));
         log.info("diffexp check: %s\n%s",
                 new PerformanceResult("emp.old", diffExpResults, (_d) -> _d.fcEstimatePval, (_d) -> Ndiffexp.contains(_d.combinedFeatureName), false,
@@ -843,11 +846,11 @@ public class GenerateTrCounts {
 
         Vector<Double> fuzzy5Proportions = toVector(40., 20., 10., 5., 3.);
 
-        empires.NormalizedReplicateSet g_nrs1_f1 = new empires.NormalizedReplicateSet(gene_rs1, new empires.ProportionBackGroundContextProvider(fuzzy5Proportions));
-        empires.NormalizedReplicateSet g_nrs2_f2 = new empires.NormalizedReplicateSet(gene_rs2, new empires.ProportionBackGroundContextProvider(fuzzy5Proportions));
+        NormalizedReplicateSet g_nrs1_f1 = new NormalizedReplicateSet(gene_rs1, new ProportionBackGroundContextProvider(fuzzy5Proportions));
+        NormalizedReplicateSet g_nrs2_f2 = new NormalizedReplicateSet(gene_rs2, new ProportionBackGroundContextProvider(fuzzy5Proportions));
 
-        empires.EmpiRe f_empiRe = new EmpiRe();
-        Vector<empires.DiffExpResult> f_diffExpResults = filter(empiRe.getDifferentialResults(g_nrs1_f1, g_nrs2_f2), (_d) -> !Ndiffsplic.contains(_d.combinedFeatureName));
+        EmpiRe f_empiRe = new EmpiRe();
+        Vector<DiffExpResult> f_diffExpResults = filter(empiRe.getDifferentialResults(g_nrs1_f1, g_nrs2_f2), (_d) -> !Ndiffsplic.contains(_d.combinedFeatureName));
         //new DiffExpTable(g_nrs1, g_nrs2, diffExpResults).showInteractiveTable(Pair.create("true", (_d) -> Ndiffexp.contains(_d.combinedFeatureName)));
         log.info("fuzzy diffexp check: %s\n%s",
                 new PerformanceResult("fuzzy.emp.old", f_diffExpResults, (_d) -> _d.fcEstimatePval, (_d) -> Ndiffexp.contains(_d.combinedFeatureName), false,
@@ -857,7 +860,7 @@ public class GenerateTrCounts {
 
 
 
-        empires.input.RNASeqSplicingInfo rsi = new RNASeqSplicingInfo(1000, 0, condition2replicatenames);
+        RNASeqSplicingInfo rsi = new RNASeqSplicingInfo(1000, 0, condition2replicatenames);
         HashMap<String, HashMap<String, Vector<HashMap<Tuple, Double>>>> simulSplicData = new HashMap<>();
         for(String g : g2tr.keySet()) {
             Vector<String> trs = g2tr.get(g);
@@ -889,14 +892,16 @@ public class GenerateTrCounts {
             simulSplicData.put(g, condition2replicate2EQclassCounts);
             rsi.addGeneInfo(g, condition2replicate2EQclassCounts);
         }
-        empires.rnaseq.SplicingTest stest = new SplicingTest(rsi, new empires.AutoBackGroundContextProvider());
+        SplicingTest stest = new SplicingTest(rsi, new AutoBackGroundContextProvider());
 
-        Vector<empires.DoubleDiffResult> diffsplicResults = stest.getDifferentialAlternativeSplicing(rs1.getReplicateSetName(), rs2
+        Vector<DoubleDiffResult> diffsplicResults = stest.getDifferentialAlternativeSplicing(rs1.getReplicateSetName(), rs2
                 .getReplicateSetName()).getFirst();
-        log.info("diff splic check: %s\n",
-                new PerformanceResult("emp.splic", diffsplicResults, (_d) -> _d.pval, (_d) -> Ndiffsplic.contains(_d.testName.split("\\.")[0]), false,
-                        (_d) -> _d.fdr <= 0.05, null)
-        );
+        if(false) {
+            log.info("diff splic check: %s\n",
+                    new PerformanceResult("emp.splic", diffsplicResults, (_d) -> _d.pval, (_d) -> Ndiffsplic.contains(_d.testName.split("\\.")[0]), false,
+                            (_d) -> _d.fdr <= 0.05, null)
+            );
+        }
 
         PrintWriter diffexpPw = FileUtils.getWriter(od, "diffexp.trues");
         apply(Ndiffexp, (_g) -> diffexpPw.printf("%s\n", _g));
@@ -909,15 +914,15 @@ public class GenerateTrCounts {
 
         Vector<String> eb_genes = filter(genefeatures, (_g) -> !Ndiffsplic.contains(_g));
 
-        PrintWriter eb_fdata = FileUtils.getWriter(empires.input.EBROWSER_INPUT.FDATA.get(od));
+        PrintWriter eb_fdata = FileUtils.getWriter(EBROWSER_INPUT.FDATA.get(od));
         apply(eb_genes, (_g) -> eb_fdata.println(_g));
         eb_fdata.close();
-        PrintWriter eb_pdata = FileUtils.getWriter(empires.input.EBROWSER_INPUT.PDATA.get(od));
+        PrintWriter eb_pdata = FileUtils.getWriter(EBROWSER_INPUT.PDATA.get(od));
         apply(gene_rs1.getReplicateNames(), (_rn) -> eb_pdata.printf("%s\t0\n", _rn));
         apply(gene_rs2.getReplicateNames(), (_rn) -> eb_pdata.printf("%s\t1\n", _rn));
         eb_pdata.close();
 
-        PrintWriter eb_trues = FileUtils.getWriter(empires.input.EBROWSER_INPUT.TRUES.get(od));
+        PrintWriter eb_trues = FileUtils.getWriter(EBROWSER_INPUT.TRUES.get(od));
         apply(Ndiffexp, (_g) -> eb_trues.println(_g));
         eb_trues.close();
 

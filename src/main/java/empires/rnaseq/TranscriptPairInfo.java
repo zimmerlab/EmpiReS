@@ -1,4 +1,4 @@
-package empires.rnaseq;
+package nlEmpiRe.rnaseq;
 
 import lmu.utils.Pair;
 import lmu.utils.Tuple;
@@ -53,7 +53,7 @@ public class TranscriptPairInfo {
         Vector<TranscriptPairInfo> pairs = new Vector<>();
 
         for(int i=0; i<trVec.size(); i++) {
-            for(int j=i+1; j<trVec.size(); j++) {   //TODO here could be solution to B/C-1 classification
+            for(int j=i+1; j<trVec.size(); j++) {
                 TranscriptPairInfo tp = new TranscriptPairInfo(trVec.get(i), trVec.get(j));
 
                 for(int ti = 0; ti < tuples.size(); ti++) {

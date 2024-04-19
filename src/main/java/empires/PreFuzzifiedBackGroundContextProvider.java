@@ -1,4 +1,4 @@
-package empires;
+package nlEmpiRe;
 
 import lmu.utils.*;
 
@@ -8,6 +8,7 @@ import java.util.Vector;
 
 import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class PreFuzzifiedBackGroundContextProvider implements BackgroundContextFuzzficationStrategyProvider {
 
@@ -22,9 +23,9 @@ public class PreFuzzifiedBackGroundContextProvider implements BackgroundContextF
     }
 
     @Override
-    public empires.BackGroundContext getContexts(String replicateSetName, Vector<String> sampleNames, Vector<empires.ReplicatedMeasurement> normalized) {
+    public BackGroundContext getContexts(String replicateSetName, Vector<String> sampleNames, Vector<ReplicatedMeasurement> normalized) {
 
-        empires.BackGroundContext backGroundContext = new BackGroundContext();
+        BackGroundContext backGroundContext = new BackGroundContext();
         backGroundContext.errorBackGrounds = new Vector<>();
         backGroundContext.meanSignalValue2Error = new Vector<>();
 
@@ -46,11 +47,11 @@ public class PreFuzzifiedBackGroundContextProvider implements BackgroundContextF
             feature2fuzzyConcept.put(feature, Pair.convert_reverse_sorted(fuzzyConcept2Freq, false).get(0).getSecond());
         }
 
-        HashMap<String, empires.ReplicatedMeasurement> normLookup = buildReverseMap(normalized, (_rm) -> _rm.featureName);
+        HashMap<String, ReplicatedMeasurement> normLookup = buildReverseMap(normalized, (_rm) -> _rm.featureName);
         HashMap<String, Integer> fuzzyConcept2BgIdx = new HashMap<>();
 
         for(String fuzzyConcept : bg2features.keySet()) {
-            Vector<empires.ReplicatedMeasurement> features = map_and_filter(bg2features.get(fuzzyConcept), (_fn) -> normLookup.get(_fn), (_r) -> null != _r);
+            Vector<ReplicatedMeasurement> features = map_and_filter(bg2features.get(fuzzyConcept), (_fn) -> normLookup.get(_fn), (_r) -> null != _r);
             if(features.size() == 0) {
                 log.warn("%s: fuzzy concept: %s has no valid features mapped (%d requested)", replicateSetName, fuzzyConcept, bg2features.get(fuzzyConcept).size());
                 continue;
@@ -59,7 +60,7 @@ public class PreFuzzifiedBackGroundContextProvider implements BackgroundContextF
             log.info("%s fuzzyConcept: %s got %d features assigned", replicateSetName, fuzzyConcept, features.size());
             NumUtils.sort(features, (_f) -> _f.mean);
             backGroundContext.meanSignalValue2Error.add(NumUtils.mean(features, (_f) -> _f.mean));
-            empires.ErrorEstimationDistribution err = new ErrorEstimationDistribution(0, features.size(), (_i) -> features.get(_i).nonNanValues);
+            ErrorEstimationDistribution err = new ErrorEstimationDistribution(0, features.size(), (_i) -> features.get(_i).nonNanValues);
             fuzzyConcept2BgIdx.put(fuzzyConcept, backGroundContext.errorBackGrounds.size());
             backGroundContext.errorBackGrounds.add(err);
         }

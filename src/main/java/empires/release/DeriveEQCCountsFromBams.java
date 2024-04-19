@@ -1,6 +1,6 @@
-package empires.release;
+package nlEmpiRe.release;
 
-import empires.rnaseq.reads.TranscriptEQClassWriter;
+import nlEmpiRe.rnaseq.reads.TranscriptEQClassWriter;
 
 public class DeriveEQCCountsFromBams {
     public static void main(String[] args) {

@@ -1,4 +1,4 @@
-package empires.rnaseq.simulation;
+package nlEmpiRe.rnaseq.simulation;
 
 import lmu.utils.FRuntimeException;
 import lmu.utils.UPair;

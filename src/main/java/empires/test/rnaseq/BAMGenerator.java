@@ -1,11 +1,11 @@
-package empires.test.rnaseq;
+package nlEmpiRe.test.rnaseq;
 
 
 
-import empires.rnaseq.GenomeSequenceExtractor;
 import lmu.utils.Region1D;
 import lmu.utils.RegionVector;
 import net.sf.samtools.*;
+import nlEmpiRe.rnaseq.GenomeSequenceExtractor;
 
 import java.io.File;
 import java.util.Map;

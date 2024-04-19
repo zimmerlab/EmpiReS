@@ -1,30 +1,31 @@
-package empires.release;
+package nlEmpiRe.release;
 
-import empires.EmpiRe;
-import empires.input.DSType;
 import lmu.utils.*;
 import lmu.utils.fdr.PerformanceResult;
 import lmu.utils.fdr.RocInfo;
 import lmu.utils.plotting.CachedPlotCreator;
 import lmu.utils.plotting.PlotCreator;
-import empires.rnaseq.SplicingTest;
+import nlEmpiRe.*;
+import nlEmpiRe.input.*;
+import nlEmpiRe.rnaseq.SplicingTest;
 
 import java.io.File;
 import java.util.*;
 
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class EQCInput {
 
     Logger log = LogConfig.getLogger();
-    empires.input.RNASeqSplicingInfo splicingInfo;
-    empires.input.ExperimentDescriptor experimentDescriptor;
-    static empires.input.DSType targetType = empires.input.DSType.READS;
+    RNASeqSplicingInfo splicingInfo;
+    ExperimentDescriptor experimentDescriptor;
+    static DSType targetType = DSType.READS;
 
     Vector<Double> maxMinCounts = new Vector<>();
     int minCountIntMaxCountCondition = 5;
 
-    public EQCInput(empires.input.RNASeqSplicingInfo splicingInfo, empires.input.ExperimentDescriptor experimentDescriptor) {
+    public EQCInput(RNASeqSplicingInfo splicingInfo, ExperimentDescriptor experimentDescriptor) {
         this.splicingInfo = splicingInfo;
         this.experimentDescriptor = experimentDescriptor;
         this.minCountIntMaxCountCondition = minCountIntMaxCountCondition;
@@ -40,9 +41,9 @@ public class EQCInput {
         Tuple eqClass;
         boolean total;
         HashMap<String, Vector<Double>> cond2values = new HashMap<>();
-        empires.input.DSType targetType;
+        DSType targetType;
 
-        EQInfo(Vector<String[]> data, HashMap<Integer, String> idx2cond, empires.input.DSType targetType) {
+        EQInfo(Vector<String[]> data, HashMap<Integer, String> idx2cond, DSType targetType) {
             String[] header = data.get(0);
             this.targetType = targetType;
             gene = header[0].substring(1);
@@ -54,12 +55,12 @@ public class EQCInput {
 
             for(int i=1; i<data.size(); i++) {
                 converter.set(data.get(i));
-                empires.input.DSType dsType = DSType.get(converter.toString(0));
+                DSType dsType = DSType.get(converter.toString(0));
                 if(dsType != targetType)
                     continue;
 
 
-                for(int j=2, repidx = 0; j < converter.length(); j++, repidx++) {
+                for(int j=1, repidx = 0; j < converter.length(); j++, repidx++) {
                     MapBuilder.updateV(cond2values, idx2cond.get(repidx), converter.toDbl(j));
                 }
 
@@ -72,10 +73,10 @@ public class EQCInput {
         }
     }
 
-    HashMap<String, empires.NormalizedReplicateSet> cond2normedTotal = new HashMap<>();
+    HashMap<String, NormalizedReplicateSet> cond2normedTotal = new HashMap<>();
 
-    public empires.NormalizedReplicateSet getNormedCondition(String condition) {
-        empires.NormalizedReplicateSet nrs = cond2normedTotal.get(condition);
+    public NormalizedReplicateSet getNormedCondition(String condition) {
+        NormalizedReplicateSet nrs = cond2normedTotal.get(condition);
         if(nrs != null)
             return nrs;
 
@@ -96,12 +97,12 @@ public class EQCInput {
             applyIndex(vals.size(), (_i) -> logvals.get(_i).add(vals.get(_i)));
         }
 
-        empires.input.ReplicateSetInfo rsi = new empires.input.ReplicateSetInfo(condition, replicates, genes);
+        ReplicateSetInfo rsi = new ReplicateSetInfo(condition, replicates, genes);
         for(int i=0; i<replicates.size(); i++) {
             rsi.setLog2Data(i, logvals.get(i));
         }
 
-        cond2normedTotal.put(condition, nrs = new empires.NormalizedReplicateSet(rsi));
+        cond2normedTotal.put(condition, nrs = new NormalizedReplicateSet(rsi));
         return nrs;
     }
 
@@ -174,8 +175,8 @@ public class EQCInput {
     }
 
     public static void main(String[] args) {
-        empires.input.GeneralOptions generalOptions = new empires.input.GeneralOptions();
-        empires.input.BackgroundProviderOption backgroundProviderOption = new empires.input.BackgroundProviderOption();
+        GeneralOptions generalOptions = new GeneralOptions();
+        BackgroundProviderOption backgroundProviderOption = new BackgroundProviderOption();
         SimpleOptionParser cmd = new SimpleOptionParser("i", "samples", "maxtrnum", "truesplicing", "truediffexp", "cond1", "cond2", "o");
         cmd.setFile("i", "samples", "truesplicing", "truediffexp");
         cmd.setInt("maxtrnum");
@@ -190,9 +191,9 @@ public class EQCInput {
         Logger log = LogConfig.getLogger();
         int MAX_TR_NUM = cmd.getInt("maxtrnum");
 
-        empires.input.ExperimentDescriptor experimentDescriptor = new empires.input.ExperimentDescriptor(null, cmd.getFile("samples"), cmd.getOptionalFile("trues"));
+        ExperimentDescriptor experimentDescriptor = new ExperimentDescriptor(null, cmd.getFile("samples"), cmd.getOptionalFile("trues"));
 
-        empires.input.RNASeqSplicingInfo splicingInfo = new empires.input.RNASeqSplicingInfo(MAX_TR_NUM, 1.0,  experimentDescriptor.getCond2Reps());
+        RNASeqSplicingInfo splicingInfo = new RNASeqSplicingInfo(MAX_TR_NUM, 1.0,  experimentDescriptor.getCond2Reps());
 
         EQCInput eqClassInput = new EQCInput(splicingInfo, experimentDescriptor);
 
@@ -213,7 +214,7 @@ public class EQCInput {
         }
 
         SplicingTest test = new SplicingTest(splicingInfo, backgroundProviderOption.getStrategy());
-        test.doubleDiffVariant = empires.DoubleDiffVariant.ALLPAIRS;
+        test.doubleDiffVariant = DoubleDiffVariant.ALLPAIRS;
 
 
 
@@ -222,7 +223,7 @@ public class EQCInput {
 
         log.info("calc diffexp conditions: %s to test: %s, %s", conditions, cond1, cond2);
 
-        HashMap<String, empires.DiffExpResult> gene2diffexp = buildReverseMap(new EmpiRe().getDifferentialResults(eqClassInput.getNormedCondition(cond1), eqClassInput.getNormedCondition(cond2)), (_e) -> _e.combinedFeatureName);
+        HashMap<String, DiffExpResult> gene2diffexp = buildReverseMap(new EmpiRe().getDifferentialResults(eqClassInput.getNormedCondition(cond1), eqClassInput.getNormedCondition(cond2)), (_e) -> _e.combinedFeatureName);
 
         if(trueDiffexp != null) {
             System.out.printf("%s\n", new PerformanceResult("EmpiRe-diffexp", filter(gene2diffexp.values(), (_d) -> (trueSplic == null) ? true : !trueSplic.contains(_d.combinedFeatureName)), (_d) -> _d.pval, (_d) -> trueDiffexp.contains(_d.combinedFeatureName), false, (_d) -> _d.fdr <= 0.05,
@@ -231,28 +232,19 @@ public class EQCInput {
         log.info("calc splicing conditions: %s to test: %s, %s", conditions, cond1, cond2);
         //test.getQuickTest(conditions.get(0), conditions.get(1), trueGenes);
         long t1 = System.currentTimeMillis();
-//        UPair<Vector<DoubleDiffResult>> allSplicingResults = test.getDifferentialAlternativeSplicing(cond1, cond2);
-
-//        HashMap<String, DoubleDiffResult> splicingFull = buildReverseMap(allSplicingResults.getFirst(), (_ddr) -> _ddr.testName);
-
-        HashMap<String, empires.DoubleDiffResult> splicing = new HashMap<>();
-//        splicing = buildReverseMap(allSplicingResults.getFirst(), (_ddr) -> _ddr.testName.split("\\.")[0]);
-
-
+        HashMap<String, DoubleDiffResult> splicing = buildReverseMap(test.getDifferentialAlternativeSplicing(cond1, cond2).getFirst(), (_ddr) -> _ddr.testName.split("\\.")[0]);
         long t2 = System.currentTimeMillis();
         long DAS_test_time = t2 - t1;
         log.info("DAS test time: %.2f sec.", DAS_test_time / 1000.0);
 
 
-//        if(trueSplic != null) {
-//            System.out.printf("%s\n", new PerformanceResult("EmpiRe-diffsplic", toVector(splicing.values()), (_d) -> _d.pval, (_d) -> trueSplic.contains(_d.testName.split("\\.")[0]), false, (_d) -> _d.fdr <= 0.05,
-//                        null, false, RocInfo.PerformanceEvaluationStrategy.OPTIMISTIC));
-//
-//
-//        }
-        empires.DoubleDiffResult MISSING_DDR = new empires.DoubleDiffResult();
-        Vector<empires.DoubleDiffResult> MISSING_VDDR = new Vector<>();
-        MISSING_VDDR.add(MISSING_DDR);
+        if(trueSplic != null) {
+            System.out.printf("%s\n", new PerformanceResult("EmpiRe-diffsplic", toVector(splicing.values()), (_d) -> _d.pval, (_d) -> trueSplic.contains(_d.testName.split("\\.")[0]), false, (_d) -> _d.fdr <= 0.05,
+                        null, false, RocInfo.PerformanceEvaluationStrategy.OPTIMISTIC));
+
+
+        }
+        DoubleDiffResult MISSING_DDR = new DoubleDiffResult();
         Vector<String> genelist = NumUtils.sort(toVector(gene2diffexp.keySet()), (_g) -> Math.min(gene2diffexp.get(_g).fdr, splicing.getOrDefault(_g, MISSING_DDR).fdr), false);
 
 
@@ -274,65 +266,6 @@ public class EQCInput {
         DataTable.buildTable(genelist, hgm).writeCSV(cmd.getFile("o"));
 
 
-        HashMap<String, String> typeMap = new HashMap<>();
-        UPair<Vector<empires.DoubleDiffResult>> diffTransResults = test.getDifferentialTranscriptExpression(cond1, cond2);
-        HashMap<String, empires.DoubleDiffResult> transcript2diffexp = buildReverseMap(diffTransResults.getFirst(), (_ddr) -> _ddr.testName.split("\\.")[0]);
-//        HashMap<String, DoubleDiffResult> transcript2diffexp = new HashMap<>();
-        genelist.forEach(_g -> transcript2diffexp.put(_g, new empires.DoubleDiffResult()));
-
-        final double CUTOFF = 0.051; //fixme this should be param
-        genelist.forEach(_g -> {
-            if (gene2diffexp.get(_g).fdr <= CUTOFF && splicing.getOrDefault(_g, MISSING_DDR).testName.equals("untested")) {
-                typeMap.put(_g, "A1:single_transcript_DE");
-            } else if (gene2diffexp.get(_g).fdr <= CUTOFF && splicing.getOrDefault(_g, MISSING_DDR).fdr > CUTOFF) {
-                typeMap.put(_g, "A2:similar_for_all_trs");
-            } else if (transcript2diffexp.get(_g).fdr <= CUTOFF) {  //here look if 1 transcript is DE
-                if(gene2diffexp.get(_g).fdr <= CUTOFF) {
-                    typeMap.put(_g, "B1:big_change_for_tr");
-                } else if (splicing.getOrDefault(_g, MISSING_DDR).fdr <= CUTOFF) {
-                    typeMap.put(_g, "C1:minor_change_in_tr");
-                } else {
-                    typeMap.put(_g, "UNKNOWN:not_DAS_not_DE_but_difftrans");
-                }
-            } else if (splicing.getOrDefault(_g, MISSING_DDR).fdr <= CUTOFF) {
-                if (gene2diffexp.get(_g).fdr <= CUTOFF) {
-                    typeMap.put(_g, "B2:change_in_composition_and_overall");
-                } else {
-                    typeMap.put(_g, "C2:minor_change_in_composition");
-                }
-            }
-        });
-
-
-
-        DataTable.HeaderGetterManager<String> hgm2 = new DataTable.HeaderGetterManager<>("gene", (_g) -> _g);
-        if(trueDiffexp != null) {
-            hgm2.add("true.diffexp", (_g) -> trueDiffexp.contains(_g));
-        }
-        if(trueSplic != null) {
-            hgm2.add("true.splicing", (_g) -> trueSplic.contains(_g));
-        }
-        hgm2.add("diffType", typeMap::get)
-                .add("diffexp.fdr", (_g) -> gene2diffexp.get(_g).fdr)
-                .add("diffexp.log2fc", (_g) -> gene2diffexp.get(_g).estimatedFC)
-                .add("diffsplic.most.signif.test", (_g) -> splicing.getOrDefault(_g, MISSING_DDR).testName)
-                .add("diffsplic.fdr", (_g) -> splicing.getOrDefault(_g, MISSING_DDR).fdr)
-                .add("diffsplic.difflog2fc", (_g) -> splicing.getOrDefault(_g, MISSING_DDR).meanFC)
-                .add("diffsplic.f1.difflog2fc("+cond1+"-"+cond2+")", (_g) -> splicing.getOrDefault(_g, MISSING_DDR).f1meanFC)
-                .add("diffsplic.f2.difflog2fc("+cond1+"-"+cond2+")", (_g) -> splicing.getOrDefault(_g, MISSING_DDR).f2meanFC);
-
-
-        DataTable.buildTable(genelist, hgm2).writeCSV(new File(cmd.getFile("o").getAbsolutePath() + ".complete.info"));
-
-
-//        DataTable.HeaderGetterManager<String> hgm3 = new DataTable.HeaderGetterManager<>("gene", (_g) -> _g.split("\\.")[0]);
-//        hgm3.add("diffsplic.most.signif.test", (_g) -> splicingFull.getOrDefault(_g, MISSING_DDR).testName)
-//                .add("diffsplic.fdr", (_g) -> splicingFull.getOrDefault(_g, MISSING_DDR).fdr)
-//                .add("diffsplic.difflog2fc", (_g) -> splicingFull.getOrDefault(_g, MISSING_DDR).meanFC)
-//                .add("diffsplic.f1.difflog2fc("+cond1+"-"+cond2+")", (_g) -> splicingFull.getOrDefault(_g, MISSING_DDR).f1meanFC)
-//                .add("diffsplic.f2.difflog2fc("+cond1+"-"+cond2+")", (_g) -> splicingFull.getOrDefault(_g, MISSING_DDR).f2meanFC);
-//
-//        DataTable.buildTable(splicingFull.keySet(), hgm3).writeCSV(new File(cmd.getFile("o").getAbsolutePath() + ".splicing.full.info"));
     }
 }
 

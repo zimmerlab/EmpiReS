@@ -1,4 +1,4 @@
-package empires.input;
+package nlEmpiRe.input;
 
 import lmu.utils.FRuntimeException;
 import lmu.utils.FileUtils;

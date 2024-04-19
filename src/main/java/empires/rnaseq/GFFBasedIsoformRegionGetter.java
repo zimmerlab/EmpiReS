@@ -1,4 +1,4 @@
-package empires.rnaseq;
+package nlEmpiRe.rnaseq;
 
 
 import lmu.utils.*;
@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Created by csaba on 14/09/17.
@@ -20,7 +21,7 @@ public class GFFBasedIsoformRegionGetter extends FileBasedIsoformRegionGetter
     static class GeneInfo
     {
         Logger log = LogConfig.getLogger();
-        empires.rnaseq.GenomicRegion gr;
+        GenomicRegion gr;
         String id;
         String name;
         String biotype;
@@ -32,7 +33,7 @@ public class GFFBasedIsoformRegionGetter extends FileBasedIsoformRegionGetter
         HashMap<String, Vector<Region1D>> cds = new HashMap<>();
         HashMap<String, Vector<Region1D>> tr2stop = new HashMap<>();
 
-        public GeneInfo(empires.rnaseq.GenomicRegion gr, HashMap<String, String> infos)
+        public GeneInfo(GenomicRegion gr, HashMap<String, String> infos)
         {
             this.gr = gr;
             this.id = infos.get("gene_id");
@@ -45,18 +46,18 @@ public class GFFBasedIsoformRegionGetter extends FileBasedIsoformRegionGetter
 
         }
 
-        public void addExon(empires.rnaseq.GenomicRegion gr, HashMap<String, String> infos)
+        public void addExon(GenomicRegion gr, HashMap<String, String> infos)
         {
             MapBuilder.updateV(trs, infos.get("transcript_id"), new Region1D(gr.getX1(), gr.getX2()));
         }
 
-        public void addStopCodon(empires.rnaseq.GenomicRegion gr, HashMap<String, String> infos)
+        public void addStopCodon(GenomicRegion gr, HashMap<String, String> infos)
         {
             MapBuilder.updateV(tr2stop, infos.get("transcript_id"), new Region1D(gr.getX1(), gr.getX2()));
 
         }
 
-        public void addCDSExon(empires.rnaseq.GenomicRegion gr, HashMap<String, String> infos, String line)
+        public void addCDSExon(GenomicRegion gr, HashMap<String, String> infos, String line)
         {
             String pid = infos.get("protein_id");
             String trid = infos.get("transcript_id");
@@ -77,9 +78,9 @@ public class GFFBasedIsoformRegionGetter extends FileBasedIsoformRegionGetter
         {
             return new RegionVector(NumUtils.sort(v, (_r) -> _r.getX1(),  false), true);
         }
-        public empires.rnaseq.MultiIsoformRegion toMIR()
+        public MultiIsoformRegion toMIR()
         {
-            empires.rnaseq.MultiIsoformRegion mir = new empires.rnaseq.MultiIsoformRegion();
+            MultiIsoformRegion mir = new MultiIsoformRegion();
             mir.biotype = biotype;
             mir.id = id;
             mir.name = name;
@@ -151,7 +152,7 @@ public class GFFBasedIsoformRegionGetter extends FileBasedIsoformRegionGetter
         }
     }
 
-    GeneInfo getOrAdd(HashMap<String, GeneInfo> genes, empires.rnaseq.GenomicRegion gr, HashMap<String, String> attribs)
+    GeneInfo getOrAdd(HashMap<String, GeneInfo> genes, GenomicRegion gr, HashMap<String, String> attribs)
     {
         String geneid = attribs.get("gene_id");
         if(geneid == null) {
@@ -252,12 +253,12 @@ public class GFFBasedIsoformRegionGetter extends FileBasedIsoformRegionGetter
 
     interface ParseF
     {
-        public void parse(GeneInfo gi, empires.rnaseq.GenomicRegion gr, HashMap<String, String> attribs, String line);
+        public void parse(GeneInfo gi, GenomicRegion gr, HashMap<String, String> attribs, String line);
     }
 
     void parseLine(HashMap<String, GeneInfo> genes, FileUtils.Converter c, String line, ParseF pf)
     {
-        empires.rnaseq.GenomicRegion gr = new GenomicRegion(c.toString(0), GenomicUtils.getStrand(c.toString(6)), c.toInt(3), c.toInt(4) + 1);
+        GenomicRegion gr = new GenomicRegion(c.toString(0), GenomicUtils.getStrand(c.toString(6)), c.toInt(3), c.toInt(4) + 1);
         HashMap<String, String>  attribs = readAttribs(c.toString(8), line);
         pf.parse(getOrAdd(genes, gr, attribs), gr,  attribs, line);
 

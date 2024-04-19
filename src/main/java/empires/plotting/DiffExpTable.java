@@ -1,11 +1,11 @@
-package empires.plotting;
+package nlEmpiRe.plotting;
 
-import empires.ErrorEstimationDistribution;
 import lmu.utils.*;
 import lmu.utils.plotting.CachedPlotCreator;
 import lmu.utils.plotting.PlotCreator;
 import lmu.utils.swing.PagedDataTable;
-import empires.input.ReplicateSetInfo;
+import nlEmpiRe.*;
+import nlEmpiRe.input.ReplicateSetInfo;
 
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
@@ -21,7 +21,7 @@ public class DiffExpTable {
     static final public double DEFAULT_FDR_THRESHOLD = 0.05;
     static final long MAX_PC_TIMEOUT = 1000;
 
-    Vector<empires.DiffExpResult> expResults;
+    Vector<DiffExpResult> expResults;
     Function<String, Boolean> labelFunc;
     DataTable table;
     PagedDataTable.MJFrame mjFrame;
@@ -31,21 +31,21 @@ public class DiffExpTable {
     double minFCThreshold;
     double maxFDRThreshold;
 
-    empires.NormalizedReplicateSet from;
-    empires.NormalizedReplicateSet to;
+    NormalizedReplicateSet from;
+    NormalizedReplicateSet to;
     PlotCreator plotCreator;
     long lastPlotted = System.currentTimeMillis();
 
-    HashMap<String, empires.DiffExpResult> lookup = null;
+    HashMap<String, DiffExpResult> lookup = null;
 
-    public DiffExpTable(empires.NormalizedReplicateSet from, empires.NormalizedReplicateSet to, Vector<empires.DiffExpResult> expResults) {
+    public DiffExpTable(NormalizedReplicateSet from, NormalizedReplicateSet to, Vector<DiffExpResult> expResults) {
         this(from, to, expResults, DEFAULT_FC_THRESHOLD, DEFAULT_FDR_THRESHOLD, null);
     }
-    public DiffExpTable(empires.NormalizedReplicateSet from, empires.NormalizedReplicateSet to, Vector<empires.DiffExpResult> expResults, double minFC, double maxFDR) {
+    public DiffExpTable(NormalizedReplicateSet from, NormalizedReplicateSet to, Vector<DiffExpResult> expResults, double minFC, double maxFDR) {
         this(from, to, expResults, minFC, maxFDR, null);
     }
 
-    public DiffExpTable(empires.NormalizedReplicateSet from, empires.NormalizedReplicateSet to, Vector<empires.DiffExpResult> expResults, double minFC, double maxFDR, Function<String, Boolean> labelFunc) {
+    public DiffExpTable(NormalizedReplicateSet from, NormalizedReplicateSet to, Vector<DiffExpResult> expResults, double minFC, double maxFDR, Function<String, Boolean> labelFunc) {
         this.from = from;
         this.to = to;
         this.expResults = expResults;
@@ -55,7 +55,7 @@ public class DiffExpTable {
     }
 
 
-    public empires.DiffExpResult getDiffExpById(String featureId) {
+    public DiffExpResult getDiffExpById(String featureId) {
         if(lookup != null)
             return lookup.get(featureId);
 
@@ -73,17 +73,17 @@ public class DiffExpTable {
         return getTable(new Vector<>());
     }
     
-    public DataTable getTable(Iterable<Pair<String, Function<empires.DiffExpResult, Object>>> additionalHeaders) {
+    public DataTable getTable(Iterable<Pair<String, Function<DiffExpResult, Object>>> additionalHeaders) {
         if(table != null)
             return table;
 
-        DataTable.HeaderGetterManager<empires.DiffExpResult> hgm = DataTable.buildHeader("id", (empires.DiffExpResult e) -> e.combinedFeatureName);
+        DataTable.HeaderGetterManager<DiffExpResult> hgm = DataTable.buildHeader("id", (DiffExpResult e) -> e.combinedFeatureName);
         if(labelFunc != null) {
             hgm.add("isTrue", (_e) -> labelFunc.apply(_e.combinedFeatureName));
         }
         hgm.add("numFeatures", (_e) -> _e.featureNames.size());
         if(additionalHeaders != null) {
-            for(Pair<String, Function<empires.DiffExpResult, Object>> p : additionalHeaders) {
+            for(Pair<String, Function<DiffExpResult, Object>> p : additionalHeaders) {
                 hgm.add(p.getFirst(), (_e) -> p.getSecond().apply(_e));
             }
         }
@@ -117,9 +117,9 @@ public class DiffExpTable {
             return vulcano;
 
         PlotCreator pc = getPlotCreator();
-        Vector<empires.DiffExpResult> trueExp = (labelFunc == null) ? null : filter(expResults, (_e) -> labelFunc.apply(_e.combinedFeatureName));
+        Vector<DiffExpResult> trueExp = (labelFunc == null) ? null : filter(expResults, (_e) -> labelFunc.apply(_e.combinedFeatureName));
 
-        Function<empires.DiffExpResult, Boolean> calledLabel = (_e) -> Math.abs(_e.estimatedFC) >= minFCThreshold && _e.fcEstimateFDR < maxFDRThreshold;
+        Function<DiffExpResult, Boolean> calledLabel = (_e) -> Math.abs(_e.estimatedFC) >= minFCThreshold && _e.fcEstimateFDR < maxFDRThreshold;
         String title = "";
         if(trueExp != null) {
             title = String.format("up: %d/%d dn: %d/%d\n(thresholds: fc: %.2f fdr: %.3f)",
@@ -159,7 +159,7 @@ public class DiffExpTable {
             return pvalDistrib;
 
         PlotCreator pc = getPlotCreator();
-        Vector<empires.DiffExpResult> trueExp = (labelFunc == null) ? null : filter(expResults, (_e) -> labelFunc.apply(_e.combinedFeatureName));
+        Vector<DiffExpResult> trueExp = (labelFunc == null) ? null : filter(expResults, (_e) -> labelFunc.apply(_e.combinedFeatureName));
 
 
 
@@ -181,17 +181,17 @@ public class DiffExpTable {
 
         PlotCreator pc = getPlotCreator();
 
-        empires.plotting.NormalizedReplicateSetPlotting pfrom = new empires.plotting.NormalizedReplicateSetPlotting(from);
-        empires.plotting.NormalizedReplicateSetPlotting pto = new NormalizedReplicateSetPlotting(to);
+        NormalizedReplicateSetPlotting pfrom = new NormalizedReplicateSetPlotting(from);
+        NormalizedReplicateSetPlotting pto = new NormalizedReplicateSetPlotting(to);
 
         return errDistribs = ImageUtils.vconcat(pfrom.plotBackGroundDistribs(pc), pto.plotBackGroundDistribs(pc));
     }
 
-    public PagedDataTable.MJFrame showInteractiveTable(Pair<String, Function<empires.DiffExpResult, Object>> ... additionalHeaders) {
+    public PagedDataTable.MJFrame showInteractiveTable(Pair<String, Function<DiffExpResult, Object>> ... additionalHeaders) {
         return showInteractiveTable(toVector(additionalHeaders));
     }
 
-    public PagedDataTable.MJFrame showInteractiveTable(Iterable<Pair<String, Function<empires.DiffExpResult, Object>>> additionalHeaders) {
+    public PagedDataTable.MJFrame showInteractiveTable(Iterable<Pair<String, Function<DiffExpResult, Object>>> additionalHeaders) {
 
         if(mjFrame != null)
             return mjFrame;
@@ -210,9 +210,9 @@ public class DiffExpTable {
             ImageUtils.showImage("pval scatter", pc.getImage(), false);
         });
         mjFrame.addMenu("show fc estimation width plot", (og) -> {
-                    empires.DiffExpManager diffExpManager = ((empires.DiffExpResult)og.getInData()).getDiffExpManager();
+                    DiffExpManager diffExpManager = ((DiffExpResult)og.getInData()).getDiffExpManager();
                     PlotCreator pc = getPlotCreator();
-                    Vector<empires.DiffExpResult> measured = filter(expResults, (_r) -> _r.isMeasured());
+                    Vector<DiffExpResult> measured = filter(expResults, (_r) -> _r.isMeasured());
                     for(int level : toVector(50, 75, 90, 95)) {
                         Vector<Double> fcWidths = filter_and_map(expResults, (_r) -> _r.isMeasured(), (_r) -> _r.getFoldChangeWidthToConfidenceLevel(level));
                         pc.cumhist("conf="+ level, fcWidths, fcWidths.size(), false, false);
@@ -223,27 +223,27 @@ public class DiffExpTable {
         );
 
         mjFrame.addMenu("show non-diff fc-thresholds", (og) -> {
-                    empires.DiffExpManager diffExpManager = ((empires.DiffExpResult)og.getInData()).getDiffExpManager();
+                    DiffExpManager diffExpManager = ((DiffExpResult)og.getInData()).getDiffExpManager();
                     PlotCreator pc = getPlotCreator();
-                    Vector<empires.DiffExpResult> measured = filter(expResults, (_r) -> _r.isMeasured());
+                    Vector<DiffExpResult> measured = filter(expResults, (_r) -> _r.isMeasured());
                     Vector<Double> pvals = map(measured, (_de) -> _de.getNonDiffExpLog2FCThresholdToDefaultPvalThreshold());
                     pc.cumhist("all measured", pvals, pvals.size(), false, false);
 
                     Vector<Double> nonsig_pvals = filter_and_map(measured, (_de) -> _de.fcEstimateFDR > 0.05  || Math.abs(_de.estimatedFC) < 1.0, (_de) -> _de.getNonDiffExpLog2FCThresholdToDefaultPvalThreshold());
                     pc.cumhist("non signif (fdr>0.05 || |fc|<1)", nonsig_pvals, nonsig_pvals.size(), false, false);
-                    pc.setLabels("non-diff-exp FC threshold leading to non-diff-exp pval="+ empires.DiffExpResult.DEFAULT_PVAL_THRESHOLD, "freq.", "bottomright");
+                    pc.setLabels("non-diff-exp FC threshold leading to non-diff-exp pval="+ DiffExpResult.DEFAULT_PVAL_THRESHOLD, "freq.", "bottomright");
                     ImageUtils.showImage("confidence interval widths", pc.getImage(), false);
                 }
         );
 
         mjFrame.addMenu("show replicate scatters", (og) ->
         {
-            empires.DiffExpManager diffExpManager = ((empires.DiffExpResult)og.getInData()).getDiffExpManager();
+            DiffExpManager diffExpManager = ((DiffExpResult)og.getInData()).getDiffExpManager();
             PlotCreator pc = getPlotCreator();
 
             Vector<BufferedImage> condimages = new Vector<>();
             for(int i=0; i<2; i++) {
-                empires.NormalizedReplicateSet nrs = ((i == 0) ? diffExpManager.replicateSetFrom : diffExpManager.replicateSetTo);
+                NormalizedReplicateSet nrs = ((i == 0) ? diffExpManager.replicateSetFrom : diffExpManager.replicateSetTo);
                 Vector<Double> shifts = nrs.getNormalization().getShifts();
                 ReplicateSetInfo rsi = nrs.getInData();
                 Vector<BufferedImage> scatters = new Vector<>();
@@ -269,7 +269,7 @@ public class DiffExpTable {
 
         mjFrame.addMenu("show normalization", (og) ->
         {
-            empires.DiffExpManager diffExpManager = ((empires.DiffExpResult)og.getInData()).getDiffExpManager();
+            DiffExpManager diffExpManager = ((DiffExpResult)og.getInData()).getDiffExpManager();
             PlotCreator pc = getPlotCreator();
             Vector<Double> diffs = diffExpManager.getMedianFCDistrib();
             pc.hist("diff", diffs, 100, false, false);
@@ -280,19 +280,19 @@ public class DiffExpTable {
             Vector<Double> err1 = diffExpManager.replicateSetFrom.getMedianValues(diffExpManager.totalFeatures);
             Vector<Double> err2 = diffExpManager.replicateSetTo.getMedianValues(diffExpManager.totalFeatures);
 
-            empires.ErrorEstimationDistribution shiftErr = empires.PairwiseMedianImpliedFCPeakErrorEstimation.getShiftError(err1, err2);
-            empires.ErrorEstimationDistribution.Peak fcpeak = shiftErr.getBestFCPeak();
+            ErrorEstimationDistribution shiftErr = PairwiseMedianImpliedFCPeakErrorEstimation.getShiftError(err1, err2);
+            ErrorEstimationDistribution.Peak fcpeak = shiftErr.getBestFCPeak();
 
             pc.setTitle("%s vs %s shift: %.2f", diffExpManager.replicateSetFrom.getInData().getReplicateSetName(),
-                    diffExpManager.replicateSetTo.getInData().getReplicateSetName(), fcpeak.summit * empires.ErrorEstimationDistribution.norm + shiftErr.getMinFC());
+                    diffExpManager.replicateSetTo.getInData().getReplicateSetName(), fcpeak.summit * ErrorEstimationDistribution.norm + shiftErr.getMinFC());
             pc.setLabels("log2fc", "freq", null);
 
             double minFC = shiftErr.getFoldChangeToCumulativeFrequency(0.01);
             double maxFC = shiftErr.getFoldChangeToCumulativeFrequency(0.99);
 
-            pc.abline("", fcpeak.peakStart * empires.ErrorEstimationDistribution.norm + shiftErr.getMinFC(), null, null, null);
-            pc.abline("", fcpeak.summit * empires.ErrorEstimationDistribution.norm + shiftErr.getMinFC(), null, null, null);
-            pc.abline("", fcpeak.peakEnd * empires.ErrorEstimationDistribution.norm + shiftErr.getMinFC(), null, null, null);
+            pc.abline("", fcpeak.peakStart * ErrorEstimationDistribution.norm + shiftErr.getMinFC(), null, null, null);
+            pc.abline("", fcpeak.summit * ErrorEstimationDistribution.norm + shiftErr.getMinFC(), null, null, null);
+            pc.abline("", fcpeak.peakEnd * ErrorEstimationDistribution.norm + shiftErr.getMinFC(), null, null, null);
 
             pc.setLabels("between condition implied log2 fc-s", "freq", null);
             pc.setTitle("shifts: %s", diffExpManager.shifts);
@@ -333,7 +333,7 @@ public class DiffExpTable {
         mjFrame.addMenu("empirical combined details", (og) ->
         {
 
-            empires.DiffExpResult exp = (empires.DiffExpResult) og.getInData();
+            DiffExpResult exp = (DiffExpResult) og.getInData();
             PlotCreator pc = getPlotCreator();
             BufferedImage bim = getDetailImage(pc, exp);
             String info = "detail for " + exp.combinedFeatureName;
@@ -451,24 +451,24 @@ public class DiffExpTable {
         return mjFrame;
     }
 
-    public BufferedImage getDetailImage(PlotCreator pc, empires.DiffExpResult exp) {
+    public BufferedImage getDetailImage(PlotCreator pc, DiffExpResult exp) {
 
         PlotCreator.BoxPlotBuilder bpb = pc.buildBoxPlot();
 
-        Vector<empires.ErrorEstimationDistribution> perFeatureErrDistribs = exp.perFeatureScaledDistributions;
+        Vector<ErrorEstimationDistribution> perFeatureErrDistribs = exp.perFeatureScaledDistributions;
         for (int i = 0; i < exp.featureNames.size(); i++) {
             String fn = exp.featureNames.get(i);
             double fc = exp.perFeatureDistribEstimates.get(i).getFirst();
             ErrorEstimationDistribution ferr = perFeatureErrDistribs.get(i);
-            bpb.addBox(String.format("%s (%.2f)", fn, fc), new empires.SparseCumulativeDistribution(ferr).quantiles);
+            bpb.addBox(String.format("%s (%.2f)", fn, fc), new SparseCumulativeDistribution(ferr).quantiles);
         }
-        bpb.addBox("combined", new empires.SparseCumulativeDistribution(exp.combinedEmpiricalFoldChangeDistrib).quantiles);
+        bpb.addBox("combined", new SparseCumulativeDistribution(exp.combinedEmpiricalFoldChangeDistrib).quantiles);
         pc.setLabels("", "log2fc", "topright");
         String title = String.format("%s FC: %.2f fdr: %g (%d features)", exp.combinedFeatureName, exp.estimatedFC, exp.fcEstimateFDR, exp.featureNames.size());
         pc.setTitle(title);
         BufferedImage diffFC = bpb.plot();
 
-        new empires.SparseCumulativeDistribution(exp.combinedEmpiricalFoldChangeDistrib).drawLine(pc, "est.FC distrib");
+        new SparseCumulativeDistribution(exp.combinedEmpiricalFoldChangeDistrib).drawLine(pc, "est.FC distrib");
 
         pc.abline("", exp.estimatedFC, null, null, null);
         String title2 = String.format("%s FC: %.2f pval: %g (%d features)", exp.combinedFeatureName, exp.estimatedFC, exp.fcEstimateFDR, exp.featureNames.size());
@@ -485,7 +485,7 @@ public class DiffExpTable {
         return ImageUtils.vconcat(getSignalPlot(exp, pc), diffFC, diffFCFullPlot);
     }
 
-    public BufferedImage getSignalPlot(empires.DiffExpResult exp, PlotCreator pc) {
+    public BufferedImage getSignalPlot(DiffExpResult exp, PlotCreator pc) {
         //plot features
         Vector<UPair<Double>> fromData = new Vector<>();
         Vector<UPair<Double>> toData = new Vector<>();

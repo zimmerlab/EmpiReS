@@ -1,8 +1,9 @@
-package empires;
+package nlEmpiRe;
 
 import lmu.utils.LogConfig;
-import lmu.utils.Logger;
+import org.apache.logging.log4j.Logger;
 import lmu.utils.NumUtils;
+import lmu.utils.VectorUtils;
 
 import java.util.List;
 import java.util.Vector;
@@ -28,9 +29,9 @@ public class ProportionBackGroundContextProvider implements BackgroundContextFuz
     }
 
     @Override
-    public empires.BackGroundContext getContexts(String replicateSetName, Vector<String> sampleNames, Vector<ReplicatedMeasurement> normalized) {
+    public BackGroundContext getContexts(String replicateSetName, Vector<String> sampleNames, Vector<ReplicatedMeasurement> normalized) {
 
-        empires.BackGroundContext backGroundContext = new BackGroundContext();
+        BackGroundContext backGroundContext = new BackGroundContext();
         backGroundContext.errorBackGrounds = new Vector<>();
         backGroundContext.meanSignalValue2Error = new Vector<>();
         NumUtils.sort(normalized, (_m) -> _m.mean, false);
@@ -42,7 +43,7 @@ public class ProportionBackGroundContextProvider implements BackgroundContextFuz
             log.info("next quantile: %d: %.2f select %d-%d/%d", i, quantiles.get(i), lastidx, idx, normalized.size());
 
             backGroundContext.meanSignalValue2Error.add(NumUtils.mean(map(rangev(lastidx, idx), (_i) -> normalized.get(_i).mean)));
-            empires.ErrorEstimationDistribution err = new ErrorEstimationDistribution(lastidx, idx, (_i) -> normalized.get(_i).nonNanValues);
+            ErrorEstimationDistribution err = new ErrorEstimationDistribution(lastidx, idx, (_i) -> normalized.get(_i).nonNanValues);
 
             for(int j=lastidx; j<idx; j++) {
                 backGroundContext.featureIdx2ErrorBackgroundIdx.put(j, backGroundContext.errorBackGrounds.size());

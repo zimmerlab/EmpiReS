@@ -1,32 +1,32 @@
-package empires.rnaseq.mapping;
+package nlEmpiRe.rnaseq.mapping;
 
-import empires.rnaseq.GenomicUtils;
-import empires.rnaseq.reads.FastQRecord;
 import lmu.utils.*;
+import nlEmpiRe.rnaseq.*;
+import nlEmpiRe.rnaseq.reads.*;
 
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class TranscriptInfoBasedGenomicMapper {
 
     Logger log = LogConfig.getLogger();
-    List<empires.rnaseq.mapping.TranscriptInfo> transcriptInfoList;
+    List<TranscriptInfo> transcriptInfoList;
     SuffixArray transcriptomeSA;
     int[] startposlist;
     String saInput;
 
-    HashMap<String, empires.rnaseq.mapping.TranscriptInfo> trid2info;
+    HashMap<String, TranscriptInfo> trid2info;
     boolean verbose = false;
 
     HashMap<String, SuffixArray> tr2suffixArray = new HashMap<>();
     int maxMismatches = 10;
     static int MIN_MMP_LENGTH = 10;
 
-    public TranscriptInfoBasedGenomicMapper(List<empires.rnaseq.mapping.TranscriptInfo> transcriptInfoList, StringBuilder sb) {
+    public TranscriptInfoBasedGenomicMapper(List<TranscriptInfo> transcriptInfoList, StringBuilder sb) {
         log.info("start building SA from %.1f Mio positions", sb.length() / 1_000_000.0);
         long t1 = System.currentTimeMillis();
         transcriptomeSA = new SuffixArray(saInput = sb.toString());
@@ -58,7 +58,7 @@ public class TranscriptInfoBasedGenomicMapper {
             transcriptInfoList = new ArrayList<>();
             startposlist = new int[numTrInfos];
             for(int i=0; i<numTrInfos; i++) {
-                empires.rnaseq.mapping.TranscriptInfo tinfo = empires.rnaseq.mapping.TranscriptInfo.read(dis);
+                TranscriptInfo tinfo = TranscriptInfo.read(dis);
                 transcriptInfoList.add(tinfo);
                 startposlist[i] = tinfo.strStart;
             }
@@ -78,7 +78,7 @@ public class TranscriptInfoBasedGenomicMapper {
     }
 
     public String getTranscriptSequence(String trid) {
-        empires.rnaseq.mapping.TranscriptInfo tinfo = trid2info.get(trid);
+        TranscriptInfo tinfo = trid2info.get(trid);
         return saInput.substring(tinfo.strStart, tinfo.strStart + tinfo.length);
     }
 
@@ -104,7 +104,7 @@ public class TranscriptInfoBasedGenomicMapper {
             transcriptomeSA.serialize(dos);
             FileUtils.writeString(saInput, dos);
             dos.writeInt(transcriptInfoList.size());
-            for(empires.rnaseq.mapping.TranscriptInfo ti : transcriptInfoList) {
+            for(TranscriptInfo ti : transcriptInfoList) {
                 ti.write(dos);
             }
             dos.close();
@@ -151,7 +151,7 @@ public class TranscriptInfoBasedGenomicMapper {
                     hitIdx -= 1;
                 }
 
-                empires.rnaseq.mapping.TranscriptInfo thit = transcriptInfoList.get(hitIdx);
+                TranscriptInfo thit = transcriptInfoList.get(hitIdx);
 
                 int hitstart = hp - thit.strStart;
 
@@ -185,7 +185,7 @@ public class TranscriptInfoBasedGenomicMapper {
     }
 
     String toRevComp(String s) {
-        return (s == null) ? s : empires.rnaseq.GenomicUtils.reverse_complement(s);
+        return (s == null) ? s : GenomicUtils.reverse_complement(s);
     }
 
 
@@ -216,7 +216,7 @@ public class TranscriptInfoBasedGenomicMapper {
         }
     }
 
-    ReadMatchInfo getReadMatchInfo(String read, empires.rnaseq.mapping.TranscriptInfo tinfo, int hitstart) {
+    ReadMatchInfo getReadMatchInfo(String read, TranscriptInfo tinfo, int hitstart) {
         ReadMatchInfo rmi = new ReadMatchInfo(tinfo.strStart + hitstart, read.length());
         rmi.readseq = read;
         String tr_fragment = saInput.substring(rmi.startPos, rmi.startPos + read.length());
@@ -230,9 +230,9 @@ public class TranscriptInfoBasedGenomicMapper {
     }
 
 
-    public Collection<empires.rnaseq.mapping.TranscriptHit> getTranscriptHits(String readid, HashMap<UPair<Boolean>, String> readseqs , Boolean strandness) {
+    public Collection<TranscriptHit> getTranscriptHits(String readid, HashMap<UPair<Boolean>, String> readseqs , Boolean strandness) {
 
-        List<empires.rnaseq.mapping.TranscriptHit> transcriptHits = new ArrayList<>();
+        List<TranscriptHit> transcriptHits = new ArrayList<>();
 
         for(int strandness_fw = 0; strandness_fw < 2; strandness_fw++) {
 
@@ -244,18 +244,43 @@ public class TranscriptInfoBasedGenomicMapper {
             String fw_read = (strandness_fw == 0) ? readseqs.get(UPair.createU(true, false)) : readseqs.get(UPair.createU(false, false));
             String rw_read = (strandness_fw == 0) ? readseqs.get(UPair.createU(false, true)) : readseqs.get(UPair.createU(true, true));
 
-            HashMap<String, Vector<Integer>> fw_hits = getPartialHits(fw_read, false, false);
-            HashMap<String, Vector<Integer>> rw_hits = getPartialHits(rw_read, false, false);
+            //Evi: inserted check if read is null for fw_hits and rw_hits
+            HashMap<String, Vector<Integer>> fw_hits = fw_read==null ? new HashMap<>() : getPartialHits(fw_read, true, false);
+            HashMap<String, Vector<Integer>> rw_hits = rw_read==null ? new HashMap<>() : getPartialHits(rw_read, false, false);
 
             Set<String> smaller = (fw_hits.size() <= rw_hits.size()) ? fw_hits.keySet() : rw_hits.keySet();
             Set<String> bigger = (smaller == fw_hits.keySet()) ? rw_hits.keySet() : fw_hits.keySet();
+
+            if (fw_read == null ||  rw_read == null) {
+                //single read
+                String s_read = (fw_read == null) ? rw_read : fw_read;
+                HashMap<String, Vector<Integer>> single_hits = (fw_hits.size() > 0) ? fw_hits : rw_hits;
+                for (Map.Entry<String, Vector<Integer> > e : single_hits.entrySet()) {
+                    TranscriptInfo tinfo = trid2info.get(e.getKey());
+                    TranscriptHit bestHit = new TranscriptHit(null, 0, 1, maxMismatches + 1);
+
+                    for(int pos: e.getValue()) {
+                        ReadMatchInfo rmi = getReadMatchInfo(s_read, tinfo, pos);
+                        if( rmi.getNumMismatches() >= bestHit.numMismatches)
+                            continue;
+
+                        bestHit = new TranscriptHit(tinfo, rmi.startPos, rmi.startPos + rmi.length, rmi.getNumMismatches());
+                    }
+                    if(bestHit.transcriptInfo == null)
+                        continue;
+
+                    transcriptHits.add(bestHit);
+                }
+
+                return transcriptHits;
+            }
 
             for(String trid : smaller) {
                 if(!bigger.contains(trid))
                     continue;
 
                 TranscriptInfo tinfo = trid2info.get(trid);
-                empires.rnaseq.mapping.TranscriptHit bestHit = new empires.rnaseq.mapping.TranscriptHit(null, 0, 1, maxMismatches + 1);
+                TranscriptHit bestHit = new TranscriptHit(null, 0, 1, maxMismatches + 1);
                 TreeMap<Integer, ReadMatchInfo> fw2hit = new TreeMap<>();
                 for(int pos : fw_hits.get(trid)) {
                     fw2hit.put(pos, getReadMatchInfo(fw_read, tinfo, pos));
@@ -272,7 +297,7 @@ public class TranscriptInfoBasedGenomicMapper {
                         if(sumMM >= bestHit.numMismatches)
                             continue;
 
-                        bestHit = new empires.rnaseq.mapping.TranscriptHit(tinfo, fw_pos, pos + rw_read.length(), sumMM);
+                        bestHit = new TranscriptHit(tinfo, fw_pos, pos + rw_read.length(), sumMM);
                     }
                 }
 
@@ -329,7 +354,7 @@ public class TranscriptInfoBasedGenomicMapper {
             CountUpdater resolveInfo = new CountUpdater();
 
             for(String[] sp : FileUtils.getFieldSetsIterable(tmpfile, "\t")) {
-                Vector<empires.rnaseq.mapping.TranscriptHit.TrHitShort> hits = map(sp, (_s) -> new empires.rnaseq.mapping.TranscriptHit.TrHitShort(_s));
+                Vector<TranscriptHit.TrHitShort> hits = map(sp, (_s) -> new TranscriptHit.TrHitShort(_s));
                 HashSet<String> genes = mapToSet(hits, (_h) -> _h.gene);
                 Vector<Pair<String, Integer>> v = NumUtils.sort(map(genes, (_s) -> Pair.create(_s, total_gene2count.getOrDefault(_s, 0))), (_p) -> _p.getSecond(), true);
 
@@ -353,7 +378,7 @@ public class TranscriptInfoBasedGenomicMapper {
 
 
 
-        Region1D toGlobal(empires.rnaseq.mapping.TranscriptHit th) {
+        Region1D toGlobal(TranscriptHit th) {
             int x1 = th.transcriptInfo.rv.toGlobalPosition(th.fragment.getX1(), th.transcriptInfo.strand);
             int x2 = th.transcriptInfo.rv.toGlobalPosition(th.fragment.getX2(), th.transcriptInfo.strand);
             return new Region1D(Math.min(x1, x2), Math.max(x1, x2));
@@ -381,7 +406,11 @@ public class TranscriptInfoBasedGenomicMapper {
                     }
                 }
 
-                Collection<empires.rnaseq.mapping.TranscriptHit> trhits = mapper.getTranscriptHits(rpi.readId, readseqs, strandness);
+                Collection<TranscriptHit> trhits = mapper.getTranscriptHits(rpi.readId, readseqs, strandness);
+
+                if(mapper.verbose) {
+                    log.info("read mapped to %d transcripts strandness: %s\n", trhits.size(), strandness);
+                }
 
                 HashSet<String> trcandidates = new HashSet<>();
                 if(trhits.size() == 0) {
@@ -389,7 +418,7 @@ public class TranscriptInfoBasedGenomicMapper {
                     hitInfos.update("unmapped", 1);
 
                     if(hitInfos.getCount("unmapped") % 10_000 == 0) {
-                        hitInfos.printBestN(-1);
+                       // hitInfos.printBestN(-1);
 
                         long t2 = System.currentTimeMillis();
                         double secs = (t2 - t1) / 1_000.0;
@@ -412,7 +441,7 @@ public class TranscriptInfoBasedGenomicMapper {
 
                 } else {
 
-                    empires.rnaseq.mapping.TranscriptHit bestHit = NumUtils.minObj(trhits, (_t) -> _t.numMismatches).getSecond();
+                    TranscriptHit bestHit = NumUtils.minObj(trhits, (_t) -> _t.numMismatches).getSecond();
 
                     mismatchInfos.update("mm="+bestHit.numMismatches, 1);
                     Set<String> besthitGenes = mapToSet(filter(trhits, (_t) -> _t.numMismatches == bestHit.numMismatches), (_t) -> _t.transcriptInfo.gene);
@@ -426,11 +455,11 @@ public class TranscriptInfoBasedGenomicMapper {
                         String gene = first(besthitGenes);
                         MapBuilder.update(genecounts, gene);
 
-                        Vector<empires.rnaseq.mapping.TranscriptHit> geneTrHits = filter(trhits, (_t) -> gene.equals(_t.transcriptInfo.gene) && _t.numMismatches <= MAXMISMATCHES);
+                        Vector<TranscriptHit> geneTrHits = filter(trhits, (_t) -> gene.equals(_t.transcriptInfo.gene) && _t.numMismatches <= MAXMISMATCHES);
                         Tuple trEQClass = Tuple.tupleFromCollection(toSortedVector(mapToSet(geneTrHits, (_t) -> _t.transcriptInfo.transcriptId), true));
                         if(rpi.ref != null) {
-                            empires.rnaseq.mapping.TranscriptHit sensRealHit = filterOne(trhits, (_t) -> _t.transcriptInfo.transcriptId.equals(rpi.ref.transcript));
-                            empires.rnaseq.mapping.TranscriptHit realHit = filterOne(geneTrHits, (_t) -> _t.transcriptInfo.transcriptId.equals(rpi.ref.transcript));
+                            TranscriptHit sensRealHit = filterOne(trhits, (_t) -> _t.transcriptInfo.transcriptId.equals(rpi.ref.transcript));
+                            TranscriptHit realHit = filterOne(geneTrHits, (_t) -> _t.transcriptInfo.transcriptId.equals(rpi.ref.transcript));
 
                             if(gene.equals(rpi.ref.gene) && sensRealHit != null && realHit == null) {
 
@@ -456,12 +485,12 @@ public class TranscriptInfoBasedGenomicMapper {
                     } else {
 
                         ambig = true;
-                        empires.rnaseq.mapping.TranscriptHit refHit = (rpi.ref == null) ? null : filterOne(trhits, (_t) -> _t.transcriptInfo.transcriptId.equals(rpi.ref.transcript));
+                        TranscriptHit refHit = (rpi.ref == null) ? null : filterOne(trhits, (_t) -> _t.transcriptInfo.transcriptId.equals(rpi.ref.transcript));
 
-                        Vector<empires.rnaseq.mapping.TranscriptHit> ambig_hits = filter(trhits, (_t) -> besthitGenes.contains(_t.transcriptInfo.gene) && _t.numMismatches <= MAXMISMATCHES);
+                        Vector<TranscriptHit> ambig_hits = filter(trhits, (_t) -> besthitGenes.contains(_t.transcriptInfo.gene) && _t.numMismatches <= MAXMISMATCHES);
 
                         if(rpi.ref != null) {
-                            empires.rnaseq.mapping.TranscriptHit realHit = filterOne(ambig_hits, (_h) -> _h.transcriptInfo.transcriptId.equals(rpi.ref.transcript));
+                            TranscriptHit realHit = filterOne(ambig_hits, (_h) -> _h.transcriptInfo.transcriptId.equals(rpi.ref.transcript));
                             gotcorrecttr = realHit != null;
                             gotcorrecttr_poscorrect = gotcorrecttr && realHit.fragment.getX1() == rpi.ref.t_fw.getX1() &&
                                     realHit.fragment.getX2() == rpi.ref.t_rw.getX2();
@@ -520,8 +549,8 @@ public class TranscriptInfoBasedGenomicMapper {
                     double secs = (t2 - t1) / 1_000.0;
                     double mioreads = nprocessed / 1_000_000.0;
                     log.info("%s: %s ready with %.2f Mio reads took %.2f per Mio reads", src.label, getName(), mioreads, secs / mioreads);
-                    hitInfos.printBestN(-1);
-                    mismatchInfos.printBestN(15);
+                    //hitInfos.printBestN(-1);
+                    //mismatchInfos.printBestN(15);
                     if(rpi.ref != null) {
                         validationInfos.printBestN(-1);
                     }
@@ -539,19 +568,19 @@ public class TranscriptInfoBasedGenomicMapper {
         String readId;
         String fw;
         String rw;
-        empires.rnaseq.reads.ReadReferenceInfo ref;
+        ReadReferenceInfo ref;
     }
 
     public static class FastqPairReader {
 
         Logger log = LogConfig.getLogger();
         String label;
-        empires.rnaseq.reads.FastQReader fw;
-        empires.rnaseq.reads.FastQReader rw;
-        Iterator<empires.rnaseq.reads.ReadReferenceInfo> refInfo;
+        FastQReader fw;
+        FastQReader rw;
+        Iterator<ReadReferenceInfo> refInfo;
         boolean closed = false;
         int nreads;
-        empires.rnaseq.reads.FastQRecord fwRecord;
+        FastQRecord fwRecord;
         FastQRecord rwRecord;
         long t1 = System.currentTimeMillis();
 
@@ -559,10 +588,10 @@ public class TranscriptInfoBasedGenomicMapper {
 
         FastqPairReader(String label, File fwq, File rwq, File info, Boolean strandness) {
             this.label = label;
-            fw = new empires.rnaseq.reads.FastQReader(fwq);
-            rw = (rwq == null) ? null : new empires.rnaseq.reads.FastQReader(rwq);
+            fw = new FastQReader(fwq);
+            rw = (rwq == null) ? null : new FastQReader(rwq);
             this.strandness = strandness;
-            refInfo = (info == null) ? null : empires.rnaseq.reads.ReadReferenceInfo.getIterator(info);
+            refInfo = (info == null) ? null : ReadReferenceInfo.getIterator(info);
         }
 
 
@@ -644,7 +673,7 @@ public class TranscriptInfoBasedGenomicMapper {
             String cond = og.getString("condition");
             String label = og.getString("label");
             labelvec.add(label);
-            inputs.add(new FastqPairReader(label, og.getPath("fw", basedir), og.getPath("rw", basedir), (!gotinfo) ? null : og.getPath("info"), og.getBoolean("strandness", null)));
+            inputs.add(new FastqPairReader(label, og.getPath("fw", basedir), !og.gotHeader("rw") ? null : og.getPath("rw", basedir), (!gotinfo) ? null : og.getPath("info"), og.getBoolean("strandness", null)));
             MapBuilder.updateV(cond2reps, cond, label);
             if (rep2cond.get(label) != null) {
                 System.err.printf("label not unique: %s!\n", label);
@@ -719,6 +748,8 @@ public class TranscriptInfoBasedGenomicMapper {
         for (MapperJob mj : readyjobs) {
             String cond = rep2cond.get(mj.label);
             mj.resolveAmbig(cond2gene2count.get(cond));
+            log.info("mapper job: %s cond: %s got %d genes with counts\n",
+                    mj, cond, (cond2gene2count.get(cond) == null) ? -1 : cond2gene2count.get(cond).size());
             allgenes.addAll(cond2gene2count.get(cond).keySet());
         }
 
@@ -761,38 +792,14 @@ public class TranscriptInfoBasedGenomicMapper {
 
             for(String type : toVector("reads")) {
 
-                pw.printf("%s\t0.000\t%s\n", type, StringUtils.joinObjects("\t", total, (_t) -> String.format("%.3f", _t + 0.0)));
+                pw.printf("%s\t%s\n", type, StringUtils.joinObjects("\t", total, (_t) -> String.format("%.3f", _t + 0.0)));
             }
 
             for(Tuple t : merged) {
-
-//                //Armin
-//                List<String> tr_names = Arrays.stream(t.values()).map(Object::toString).collect(Collectors.toList());
-//                Set<String> other_names = new HashSet<>(irg.getRegionById(gene).isoforms.keySet());
-//                other_names.removeAll(tr_names);
-//                List<RegionVector> test = tr_names.stream().map(_tr -> irg.getRegionById(gene).isoforms.get(_tr)).collect(Collectors.toList());
-//                RegionVector intersect = test.get(0);
-//                for (RegionVector rv : test) {
-//                    intersect = intersect.intersect(rv);
-//                }
-//
-//                RegionVector regions = new RegionVector(intersect);
-//
-////                RegionVector regions = RegionVector.merge(test);
-//                RegionVector to_remove = RegionVector.merge(other_names.stream().map(_tr -> irg.getRegionById(gene).isoforms.get(_tr)).collect(Collectors.toList()));
-//
-//                if (other_names.size() > 0) {
-//                    regions = regions.substract(to_remove);
-////                    regions = RegionVector.convertToInner(merged, irg.getRegionById(gene).strand, regions.substract(to_remove));
-//                }
-//
-//                pw.printf(">%s\t%s;%s\n", gene, StringUtils.joinObjects(",", mapIndex(t.cardinality(), (_i) -> t.getAsString(_i))), StringUtils.joinObjects("", regions.getRegions()));
-                //until here
-
-//                pw.printf(">%s\t%s\n", gene, StringUtils.joinObjects(",", mapIndex(t.cardinality(), (_i) -> t.getAsString(_i))));
+                pw.printf(">%s\t%s\n", gene, StringUtils.joinObjects(",", mapIndex(t.cardinality(), (_i) -> t.getAsString(_i))));
                 Vector<Integer> counts = map(data, (_m) -> _m.getOrDefault(t, 0));
                 for(String type : toVector("reads")) {
-                    pw.printf("%s\t0.000\t%s\n", type, StringUtils.joinObjects("\t", counts, (_t) -> String.format("%.3f", _t + 0.0)));
+                    pw.printf("%s\t%s\n", type, StringUtils.joinObjects("\t", counts, (_t) -> String.format("%.3f", _t + 0.0)));
                 }
             }
         }

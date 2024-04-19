@@ -1,4 +1,4 @@
-package empires.rnaseq;
+package nlEmpiRe.rnaseq;
 
 import lmu.utils.*;
 import lmu.utils.tuple.*;

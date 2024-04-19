@@ -1,13 +1,13 @@
-package empires.input;
+package nlEmpiRe.input;
 
-import empires.PreFuzzifiedBackGroundContextProvider;
-import empires.ProportionBackGroundContextProvider;
 import lmu.utils.FRuntimeException;
 import lmu.utils.FileUtils;
 import lmu.utils.MapBuilder;
 import lmu.utils.SimpleOptionParser;
-import empires.AutoBackGroundContextProvider;
-import empires.BackgroundContextFuzzficationStrategyProvider;
+import nlEmpiRe.AutoBackGroundContextProvider;
+import nlEmpiRe.BackgroundContextFuzzficationStrategyProvider;
+import nlEmpiRe.PreFuzzifiedBackGroundContextProvider;
+import nlEmpiRe.ProportionBackGroundContextProvider;
 
 import java.io.File;
 import java.util.Arrays;

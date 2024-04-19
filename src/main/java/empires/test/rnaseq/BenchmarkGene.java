@@ -1,16 +1,16 @@
-package empires.test.rnaseq;
+package nlEmpiRe.test.rnaseq;
 
-import empires.SparseCumulativeDistribution;
-import empires.input.RNASeqSplicingInfo;
-import empires.rnaseq.simulation.SplicingSimulation;
-import empires.rnaseq.simulation.TranscriptSimulation;
 import lmu.utils.*;
 import lmu.utils.plotting.PlotCreator;
 import lmu.utils.swing.PagedDataTable;
-import empires.DoubleDiffResult;
-import empires.SingleFeatureDiffExp;
+import nlEmpiRe.DoubleDiffResult;
+import nlEmpiRe.SingleFeatureDiffExp;
+import nlEmpiRe.SparseCumulativeDistribution;
+import nlEmpiRe.input.RNASeqSplicingInfo;
 import lmu.utils.plotting.CachedPlotCreator;
-import empires.FeatureInfo;
+import nlEmpiRe.FeatureInfo;
+import nlEmpiRe.rnaseq.simulation.SplicingSimulation;
+import nlEmpiRe.rnaseq.simulation.TranscriptSimulation;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -23,11 +23,11 @@ public class BenchmarkGene {
     public String geneId;
     public DoubleDiffResult ddr;
     boolean isTrue;
-    empires.rnaseq.simulation.SplicingSimulation simulation;
+    SplicingSimulation simulation;
     UPair<Vector<TranscriptSimulation>> simulCounts;
-    empires.input.RNASeqSplicingInfo rnaSeqSplicingInfo;
+    RNASeqSplicingInfo rnaSeqSplicingInfo;
 
-    public BenchmarkGene(DoubleDiffResult ddr, Set<String> trues, empires.rnaseq.simulation.SplicingSimulation simulation, empires.input.RNASeqSplicingInfo rnaSeqSplicingInfo) {
+    public BenchmarkGene(DoubleDiffResult ddr, Set<String> trues, SplicingSimulation simulation, RNASeqSplicingInfo rnaSeqSplicingInfo) {
         this.ddr = ddr;
         this.simulation = simulation;
         geneId = ddr.testName.split("\\.")[0];
@@ -85,12 +85,12 @@ public class BenchmarkGene {
         return toExtendedTable(v, new SingleIterator<>(null));
     }
 
-    public static DataTable getTable(Vector<DoubleDiffResult> splicing, Set<String> trueGenes, empires.rnaseq.simulation.SplicingSimulation simulation, empires.input.RNASeqSplicingInfo rsi, Collection<Pair<String, Function<BenchmarkGene, Object>>> additionalHeaders) {
+    public static DataTable getTable(Vector<DoubleDiffResult> splicing, Set<String> trueGenes, SplicingSimulation simulation, RNASeqSplicingInfo rsi, Collection<Pair<String, Function<BenchmarkGene, Object>>> additionalHeaders) {
         NumUtils.sort(splicing, (_p) -> _p.pval, false);
         return BenchmarkGene.toExtendedTable(map(splicing, (_s) -> new BenchmarkGene(_s, trueGenes, simulation, rsi)), additionalHeaders.iterator());
     }
 
-    public static DataTable getTable(Vector<DoubleDiffResult> splicing, Set<String> trueGenes, empires.rnaseq.simulation.SplicingSimulation simulation, empires.input.RNASeqSplicingInfo rsi, Pair<String, Function<BenchmarkGene, Object>>... additionalHeaders) {
+    public static DataTable getTable(Vector<DoubleDiffResult> splicing, Set<String> trueGenes, SplicingSimulation simulation, RNASeqSplicingInfo rsi, Pair<String, Function<BenchmarkGene, Object>>... additionalHeaders) {
         NumUtils.sort(splicing, (_p) -> _p.pval, false);
 
         return BenchmarkGene.toExtendedTable(map(splicing, (_s) -> new BenchmarkGene(_s, trueGenes, simulation, rsi)), new CollectionIterator<>(additionalHeaders));

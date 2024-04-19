@@ -1,7 +1,7 @@
-package empires.rnaseq.simulation;
+package nlEmpiRe.rnaseq.simulation;
 
 
-import empires.rnaseq.MultiIsoformRegion;
+import nlEmpiRe.rnaseq.MultiIsoformRegion;
 
 import java.util.HashMap;
 import java.util.Vector;

@@ -1,4 +1,4 @@
-package empires.rnaseq.reads;
+package nlEmpiRe.rnaseq.reads;
 
 import lmu.utils.StringUtils;
 

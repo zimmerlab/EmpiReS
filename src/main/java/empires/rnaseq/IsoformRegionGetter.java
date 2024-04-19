@@ -1,4 +1,4 @@
-package empires.rnaseq;
+package nlEmpiRe.rnaseq;
 
 import lmu.utils.*;
 import lmu.utils.tuple.Tuple3;
@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Vector;
+import org.apache.logging.log4j.Logger;
 
 public abstract class IsoformRegionGetter
 {
@@ -145,7 +146,7 @@ public abstract class IsoformRegionGetter
     /** chr, strand, region<id> */
     public abstract Vector<Tuple3<String, Boolean, Region1D<String>>> getRegionInfos();
 
-    public abstract empires.rnaseq.MultiIsoformRegion getRegionById(String id);
+    public abstract MultiIsoformRegion getRegionById(String id);
 
     static Vector<Tuple3<String, Boolean, Region1D<String>>> EMPTY  = new Vector<>();
 
@@ -178,13 +179,13 @@ public abstract class IsoformRegionGetter
         return region_tree.getIntersecting(chr, start, end);
     }
 
-    public Iterator<empires.rnaseq.MultiIsoformRegion> getRegionsAround(String chr, Integer start , Integer end)
+    public Iterator<MultiIsoformRegion> getRegionsAround(String chr, Integer start , Integer end)
     {
         return ObjectGetter.getTransformedIterator(region_tree.getAround(chr, start, end).iterator(), (t) -> getRegionById(t.get2().getObject()));
     }
 
 
-    public Iterator<empires.rnaseq.MultiIsoformRegion> getRegions(String chr, Integer start , Integer end)
+    public Iterator<MultiIsoformRegion> getRegions(String chr, Integer start , Integer end)
     {
         return ObjectGetter.getTransformedIterator(getRegionInfos(chr, start, end).iterator(), (t) -> getRegionById(t.get2().getObject()));
     }
@@ -247,12 +248,12 @@ public abstract class IsoformRegionGetter
         return (p == null) ? null : p.getFirst();
     }
 
-    public Iterable<empires.rnaseq.MultiIsoformRegion> getRegionsIteratble() {
+    public Iterable<MultiIsoformRegion> getRegionsIteratble() {
         return () -> getRegions();
     }
-    public abstract Iterator<empires.rnaseq.MultiIsoformRegion> getRegions();
+    public abstract Iterator<MultiIsoformRegion> getRegions();
 
-    public abstract Pair<empires.rnaseq.MultiIsoformRegion, RegionVector> getIsoform(String id);
+    public abstract Pair<MultiIsoformRegion, RegionVector> getIsoform(String id);
     public abstract Pair<MultiIsoformRegion, RegionVector> getCoding(String id);
 
 

@@ -1,4 +1,4 @@
-package empires.rnaseq;
+package nlEmpiRe.rnaseq;
 
 import lmu.utils.*;
 
@@ -6,6 +6,7 @@ import java.io.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.logging.log4j.Logger;
 
 
 
@@ -437,7 +438,7 @@ public class GenomeSequenceExtractor
         {
             return seq;
         }
-        return empires.rnaseq.GenomicUtils.reverse_complement(seq);
+        return GenomicUtils.reverse_complement(seq);
     }
     /*public String getGenomeSeq(String chr, int from, int to, boolean strand)
     {

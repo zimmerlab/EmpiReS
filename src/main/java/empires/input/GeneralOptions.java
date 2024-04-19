@@ -1,9 +1,9 @@
-package empires.input;
+package nlEmpiRe.input;
 
 import lmu.utils.SimpleOptionParser;
-import empires.DiffExpResult;
-import empires.ErrorEstimationDistribution;
-import empires.SingleFeatureDiffExp;
+import nlEmpiRe.DiffExpResult;
+import nlEmpiRe.ErrorEstimationDistribution;
+import nlEmpiRe.SingleFeatureDiffExp;
 
 public class GeneralOptions extends  SimpleOptionParser {
 

@@ -1,4 +1,4 @@
-package empires;
+package nlEmpiRe;
 
 import lmu.utils.*;
 import lmu.utils.fdr.PerformanceResult;
@@ -12,6 +12,7 @@ import java.util.Vector;
 import java.util.function.Function;
 
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class DiffExpResult {
 

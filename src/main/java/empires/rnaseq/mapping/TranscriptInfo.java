@@ -1,7 +1,7 @@
-package empires.rnaseq.mapping;
+package nlEmpiRe.rnaseq.mapping;
 
 import lmu.utils.*;
-import empires.rnaseq.MultiIsoformRegion;
+import nlEmpiRe.rnaseq.MultiIsoformRegion;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

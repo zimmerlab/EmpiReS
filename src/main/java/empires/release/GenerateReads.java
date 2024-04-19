@@ -1,38 +1,37 @@
-package empires.release;
+package nlEmpiRe.release;
 
-import empires.rnaseq.IsoformRegionGetter;
-import empires.rnaseq.simulation.SplicingSimulation;
-import empires.test.rnaseq.SimulationConfiguration;
 import lmu.utils.*;
 import lmu.utils.tuple.Tuple3;
-
+import nlEmpiRe.rnaseq.*;
+import nlEmpiRe.test.rnaseq.*;
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.*;
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class GenerateReads {
 
-    static void simulateReads(File trcounts, empires.test.rnaseq.SimulationConfiguration simulationConfiguration, File outdir) {
+    static void simulateReads(File trcounts, SimulationConfiguration simulationConfiguration, File outdir) {
         Logger log = LogConfig.getLogger();
-        SplicingSimulation simulation = new SplicingSimulation(simulationConfiguration, trcounts);
+        nlEmpiRe.rnaseq.simulation.SplicingSimulation simulation = new nlEmpiRe.rnaseq.simulation.SplicingSimulation(simulationConfiguration, trcounts);
 
         PrintWriter pw = FileUtils.getWriter(outdir, "sample.table");
         pw.printf("label\tcondition\tbam\tfw\trw\tstrandness\n");
         for(int i=0; i<simulation.getNumConditions(); i++) {
             for(int repI = 0; repI < simulation.getCondition(i).replicates.size(); repI++) {
                 String cond = simulation.getCondition(i).condition;
-                pw.printf("%s\t%s\t%s\t%s\t%s\ttrue\n", empires.test.rnaseq.FastQGenerator.getReplicatePrefix(cond, repI), cond,
-                        empires.test.rnaseq.FastQGenerator.getReplicatePrefix(cond, repI)+"_sorted.bam",
-                        empires.test.rnaseq.FastQGenerator.getFastqFileName(cond, repI, true),
-                        empires.test.rnaseq.FastQGenerator.getFastqFileName(cond, repI, false));
+                pw.printf("%s\t%s\t%s\t%s\t%s\ttrue\n", FastQGenerator.getReplicatePrefix(cond, repI), cond,
+                        FastQGenerator.getReplicatePrefix(cond, repI)+"_sorted.bam",
+                        FastQGenerator.getFastqFileName(cond, repI, true),
+                        FastQGenerator.getFastqFileName(cond, repI, false));
             }
         }
         pw.close();
 
         Vector<Tuple3<String, String, Integer>> gene2tr2length = new Vector<>();
         for (String geneId : simulation.getSimulatedGenes()) {
-            empires.rnaseq.MultiIsoformRegion gene = simulationConfiguration.getAnnot().getRegionById(geneId);
+            MultiIsoformRegion gene = simulationConfiguration.getAnnot().getRegionById(geneId);
             for(String trId : simulation.getSimulatedTranscripts(geneId)) {
                 gene2tr2length.add(Tuple3.create(geneId,  trId, gene.isoforms.get(trId).getCoveredLength()));
             }
@@ -89,14 +88,14 @@ public class GenerateReads {
 
 
         File trcounts = cmd.getFile("trcounts");
-        IsoformRegionGetter annot = new empires.rnaseq.GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null);
+        IsoformRegionGetter annot = new GFFBasedIsoformRegionGetter(cmd.getFile("gtf"), null, null);
 
         File od = cmd.getFile("od");
-        empires.test.rnaseq.SimulationConfiguration simulationConfiguration = new SimulationConfiguration(annot);
+        SimulationConfiguration simulationConfiguration = new SimulationConfiguration(annot);
 
         simulationConfiguration.reportOutDir = od;
         simulationConfiguration.isoformRegionGetter = annot;
-        simulationConfiguration.fastQGenerator = new empires.test.rnaseq.FastQGenerator(annot, cmd.getFile("genome"), cmd.getFile("genomeidx"), cmd.getDouble("mutrate"));
+        simulationConfiguration.fastQGenerator = new FastQGenerator(annot, cmd.getFile("genome"), cmd.getFile("genomeidx"), cmd.getDouble("mutrate"));
         simulationConfiguration.fastQGenerator.setWriteInfoFile(false);
         simulationConfiguration.fastQGenerator.setGenerateBams(!cmd.isSet("nobams"));
         simulationConfiguration.fastQGenerator.setFastQOutDir(od);

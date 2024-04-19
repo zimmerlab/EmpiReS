@@ -1,15 +1,15 @@
-package empires.rnaseq;
+package nlEmpiRe.rnaseq;
 
-import empires.EmpiRe;
-import empires.plotting.NormalizedReplicateSetPlotting;
 import lmu.utils.*;
 import lmu.utils.fdr.BenjaminiHochberg;
 import lmu.utils.plotting.PlotCreator;
 import lmu.utils.tuple.Tuple3;
-import empires.FeatureInfo;
-import empires.input.RNASeqSplicingInfo;
-import empires.input.ReplicateSetInfo;
+import nlEmpiRe.*;
+import nlEmpiRe.FeatureInfo;
+import nlEmpiRe.input.RNASeqSplicingInfo;
+import nlEmpiRe.input.ReplicateSetInfo;
 import lmu.utils.plotting.CachedPlotCreator;
+import nlEmpiRe.plotting.NormalizedReplicateSetPlotting;
 
 import java.awt.image.BufferedImage;
 import java.util.Collections;
@@ -19,29 +19,30 @@ import java.util.Vector;
 
 import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class SplicingTest {
 
     Logger log = LogConfig.getLogger();
-    Vector<empires.NormalizedReplicateSet> replicateSetInfos;
-    HashMap<String, empires.NormalizedReplicateSet> name2condition;
+    Vector<NormalizedReplicateSet> replicateSetInfos;
+    HashMap<String, NormalizedReplicateSet> name2condition;
 
     HashMap<String, ReplicateSetInfo> name2summarizedCondition;
-    HashMap<String, empires.NormalizedReplicateSet> name2summarizedNormedCondition;
+    HashMap<String, NormalizedReplicateSet> name2summarizedNormedCondition;
     RNASeqSplicingInfo splicingInfo;
-    int numThreads = 40;    //fixme
+    int numThreads = 10;
 
     int minReadCountTresholdInAllReplicatesInAtLeastOneCondition = 5;
     Double pseudo = 2.0;
     boolean correctDistributionsBackwards = true;
     boolean showPlots = false;
-    public SplicingTest(RNASeqSplicingInfo splicingInfo, empires.BackgroundContextFuzzficationStrategyProvider backgroundContextFuzzficationStrategyProvider) {
+    public SplicingTest(RNASeqSplicingInfo splicingInfo, BackgroundContextFuzzficationStrategyProvider backgroundContextFuzzficationStrategyProvider) {
 
         this.splicingInfo = splicingInfo;
         for(ReplicateSetInfo rsi : splicingInfo.getReplicateSetInfos()) {
             log.info("condition: %s num features: %s num replicates: %d", rsi.getReplicateSetName(), rsi.getNumFeatures(), rsi.getNumReplicates());
         }
-        replicateSetInfos = map(splicingInfo.getReplicateSetInfos(), (_rsi) -> new empires.NormalizedReplicateSet(_rsi, backgroundContextFuzzficationStrategyProvider));
+        replicateSetInfos = map(splicingInfo.getReplicateSetInfos(), (_rsi) -> new NormalizedReplicateSet(_rsi, backgroundContextFuzzficationStrategyProvider));
         name2condition = buildReverseMap(replicateSetInfos, (_rsi) -> _rsi.getInData().getReplicateSetName());
     }
 
@@ -72,7 +73,7 @@ public class SplicingTest {
         return map(replicateSetInfos, (_r) -> _r.getInData().getReplicateSetName());
     }
 
-    public empires.NormalizedReplicateSet getNormalized(String cond) {
+    public NormalizedReplicateSet getNormalized(String cond) {
         return name2condition.get(cond);
     }
 /*
@@ -180,11 +181,11 @@ public class SplicingTest {
 
  */
 
-    public Vector<empires.DiffExpResult> getDiffEQClasses(String cond1, String cond2) {
+    public Vector<DiffExpResult> getDiffEQClasses(String cond1, String cond2) {
         Logger log = LogConfig.getLogger();
 
-        empires.NormalizedReplicateSet rs1 = getNormalized(cond1);
-        empires.NormalizedReplicateSet rs2 = getNormalized(cond2);
+        NormalizedReplicateSet rs1 = getNormalized(cond1);
+        NormalizedReplicateSet rs2 = getNormalized(cond2);
 
         if(correctDistributionsBackwards) {
 
@@ -193,7 +194,7 @@ public class SplicingTest {
 
         }
 
-        return new empires.EmpiRe().getDifferentialResults(rs1, rs2);
+        return new EmpiRe().getDifferentialResults(rs1, rs2);
 
     }
 
@@ -248,7 +249,7 @@ public class SplicingTest {
 
     public HashMap<Integer, Vector<Double>> getEqClassLevel2Count(String cond) {
         HashMap<Integer, Vector<Double>> rv = new HashMap<>();
-        empires.NormalizedReplicateSet nrs = getNormalized(cond);
+        NormalizedReplicateSet nrs = getNormalized(cond);
         for(String g : splicingInfo.getGenes()) {
             Vector<Double> vals = new Vector<>();
             for(String feature: splicingInfo.getFeaturesToGene(g)) {
@@ -300,7 +301,7 @@ public class SplicingTest {
 
 
             name2summarizedCondition.put(rsi.getReplicateSetName(), sumRsi);
-            empires.NormalizedReplicateSet normalizedReplicateSet = new empires.NormalizedReplicateSet(sumRsi);
+            NormalizedReplicateSet normalizedReplicateSet = new NormalizedReplicateSet(sumRsi);
             if(correctDistributionsBackwards) {
                 normalizedReplicateSet.correctBackWards();
             }
@@ -312,7 +313,7 @@ public class SplicingTest {
 
     public HashMap<String, Double> getSummarizedMeanCounts(String cond) {
         calcSummarizedGeneCounts();
-        empires.NormalizedReplicateSet nrs = name2summarizedNormedCondition.get(cond);
+        NormalizedReplicateSet nrs = name2summarizedNormedCondition.get(cond);
         HashMap<String, Double> m = new HashMap<>();
         for(String fn : nrs.getInData().getFeatureNames()) {
             m.put(fn, NumUtils.mean(map(nrs.getNormed(fn).nonNanValues, (_n) -> Math.pow(2.0, _n))));
@@ -320,15 +321,15 @@ public class SplicingTest {
         return m;
 
     }
-    public Vector<empires.DiffExpResult> getDiffGenes(String cond1, String cond2, boolean summarizeBefore) {
+    public Vector<DiffExpResult> getDiffGenes(String cond1, String cond2, boolean summarizeBefore) {
         Logger log = LogConfig.getLogger();
 
         if(summarizeBefore) {
             calcSummarizedGeneCounts();
-            return new empires.EmpiRe().getDifferentialResults(name2summarizedNormedCondition.get(cond1), name2summarizedNormedCondition.get(cond2));
+            return new EmpiRe().getDifferentialResults(name2summarizedNormedCondition.get(cond1), name2summarizedNormedCondition.get(cond2));
         }
-        empires.NormalizedReplicateSet rs1 = getNormalized(cond1);
-        empires.NormalizedReplicateSet rs2 = getNormalized(cond2);
+        NormalizedReplicateSet rs1 = getNormalized(cond1);
+        NormalizedReplicateSet rs2 = getNormalized(cond2);
 
         if(correctDistributionsBackwards) {
 
@@ -341,23 +342,23 @@ public class SplicingTest {
         for(String g : splicingInfo.getGenesForSplicingTest()) {
             gene2features.put(g, splicingInfo.getFeaturesToGene(g));
         }
-        return new empires.EmpiRe().getDifferentialResults(rs1, rs2, gene2features);
+        return new EmpiRe().getDifferentialResults(rs1, rs2, gene2features);
 
     }
 
 
-    public empires.DoubleDiffVariant doubleDiffVariant = empires.DoubleDiffVariant.QUICK_AND_DIRTY;
+    public DoubleDiffVariant doubleDiffVariant = DoubleDiffVariant.QUICK_AND_DIRTY;
 
-    public UPair<Vector<empires.DoubleDiffResult>> getDifferentialAlternativeSplicing(String cond1, String cond2) {
+    public UPair<Vector<DoubleDiffResult>> getDifferentialAlternativeSplicing(String cond1, String cond2) {
         Logger log = LogConfig.getLogger();
 
-        empires.NormalizedReplicateSet rs1 = getNormalized(cond1);
-        empires.NormalizedReplicateSet rs2 = getNormalized(cond2);
+        NormalizedReplicateSet rs1 = getNormalized(cond1);
+        NormalizedReplicateSet rs2 = getNormalized(cond2);
 
         PlotCreator pc = (showPlots) ? CachedPlotCreator.getPlotCreator() : null;
         BufferedImage before = null;
         if(showPlots) {
-            before = ImageUtils.concat(new empires.plotting.NormalizedReplicateSetPlotting(rs1).plotBackGroundDistribs(pc), new empires.plotting.NormalizedReplicateSetPlotting(rs2).plotBackGroundDistribs(pc));
+            before = ImageUtils.concat(new NormalizedReplicateSetPlotting(rs1).plotBackGroundDistribs(pc), new NormalizedReplicateSetPlotting(rs2).plotBackGroundDistribs(pc));
         }
 
         if(correctDistributionsBackwards) {
@@ -369,12 +370,12 @@ public class SplicingTest {
 
 
         if(showPlots) {
-            BufferedImage after = ImageUtils.concat(new empires.plotting.NormalizedReplicateSetPlotting(rs1).plotBackGroundDistribs(pc), new empires.plotting.NormalizedReplicateSetPlotting(rs2).plotBackGroundDistribs(pc));
+            BufferedImage after = ImageUtils.concat(new NormalizedReplicateSetPlotting(rs1).plotBackGroundDistribs(pc), new NormalizedReplicateSetPlotting(rs2).plotBackGroundDistribs(pc));
             ImageUtils.showImage("test", ImageUtils.vconcat(before, after), false);
         }
 
 
-        empires.DoubleDiffManager diffManager = new empires.EmpiRe().getDoubleDiffManager(rs1, rs2);
+        DoubleDiffManager diffManager = new EmpiRe().getDoubleDiffManager(rs1, rs2);
 
 
         //double pseudo = splicingInfo.getMinCountIntMaxCountCondition() * 0.5;
@@ -389,8 +390,8 @@ public class SplicingTest {
         final int nr2 = rs1.getNumReplicates();
         final double MINLEVEL = NumUtils.logN(1.0, 2.0);
 
-        Vector<empires.DoubleDiffResult> diffResults = new Vector<>();
-        Vector<empires.DoubleDiffResult> diffResults_unpaired = new Vector<>();
+        Vector<DoubleDiffResult> diffResults = new Vector<>();
+        Vector<DoubleDiffResult> diffResults_unpaired = new Vector<>();
 
         log.info("got %d/%d genes with <= features", filteredSize(splicingInfo.getGenesForSplicingTest(), (_g) -> splicingInfo.getNumFeatures(_g) <= 1), splicingInfo.getGenesForSplicingTest().size());
 
@@ -399,8 +400,8 @@ public class SplicingTest {
         ThreadUtils.runLambdas(packed_genes,
                 (_gene_vec) ->
                 {
-                    Vector<empires.DoubleDiffResult> subResults = new Vector<>();
-                    Vector<empires.DoubleDiffResult> subResults_up = new Vector<>();
+                    Vector<DoubleDiffResult> subResults = new Vector<>();
+                    Vector<DoubleDiffResult> subResults_up = new Vector<>();
                     for(String gene : _gene_vec){
 
                         Vector<String> features = splicingInfo.getFeaturesToGene(gene);
@@ -417,16 +418,14 @@ public class SplicingTest {
                         if(filtered.size() < 2)
                             continue;
 
-                        Vector<empires.DoubleDiffResult> geneDiffs = new Vector<>();
+                        Vector<DoubleDiffResult> geneDiffs = new Vector<>();
 
-                        Vector<Tuple3<String, Vector<String>, Vector<String>>> combis = splicingInfo.getSplicingTestFeatureCombis(gene, cond1, cond2);
-
-                        for(Tuple3<String, Vector<String>, Vector<String>> combi  : combis) {
+                        for(Tuple3<String, Vector<String>, Vector<String>> combi  : splicingInfo.getSplicingTestFeatureCombis(gene, cond1, cond2)) {
                             Vector<String> fs1 = filter(combi.get1(), (_f) -> filtered.contains(_f));
                             Vector<String> fs2 = filter(combi.get2(), (_f) -> filtered.contains(_f));
 
-                            Vector<FeatureInfo> merged1 = FeatureInfo.merge(fs1, rs1, rs2, minReadCountTresholdInAllReplicatesInAtLeastOneCondition, pseudo);
-                            Vector<FeatureInfo> merged2 = FeatureInfo.merge(fs2, rs1, rs2, minReadCountTresholdInAllReplicatesInAtLeastOneCondition, pseudo);
+                            Vector<nlEmpiRe.FeatureInfo> merged1 = nlEmpiRe.FeatureInfo.merge(fs1, rs1, rs2, minReadCountTresholdInAllReplicatesInAtLeastOneCondition, pseudo);
+                            Vector<nlEmpiRe.FeatureInfo> merged2 = FeatureInfo.merge(fs2, rs1, rs2, minReadCountTresholdInAllReplicatesInAtLeastOneCondition, pseudo);
 
                             if(fs1.size() == 0 || fs2.size() == 0)
                                 continue;
@@ -453,29 +452,6 @@ public class SplicingTest {
                         if(geneDiffs.size() == 0)
                             continue;
 
-                        /**
-                         * here added to check for only protein coding @Constantin
-                         */
-                        //here to get all pairs
-//                        subResults.addAll(geneDiffs);
-
-                        empires.DoubleDiffResult best = NumUtils.minObj(geneDiffs, (_d) -> _d.pval).second;
-                        if (
-//                                best.testName.split("\\.")[0].equals("ENSG00000127511") || best.testName.split("\\.")[0].equals("ENSG00000119689") ||
-//                            best.testName.split("\\.")[0].equals("ENSG00000129007") ||
-//                            best.testName.split("\\.")[0].equals("ENSG00000123836") ||
-//                            best.testName.split("\\.")[0].equals("ENSG00000148343") ||
-                            best.testName.split("\\.")[0].equals("ENSG00000138028") //||
-//                            best.testName.split("\\.")[0].equals("ENSG00000135447")
-                        ) {
-                            System.out.println("\n--------------------------\n");
-                            geneDiffs.forEach(_g -> System.out.println(_g.testName + "\t" + String.format("%.2f", _g.meanFC) + "\t" + String.format("%.2f", _g.pval)));
-                            System.out.println("--best--");
-                            System.out.println(best + "\t" + String.format("%.2f", best.meanFC) + "\t" + String.format("%.2f", best.pval));
-                            System.out.println();
-                        }
-
-                        //here to only get best pair
                         subResults.add(NumUtils.minObj(geneDiffs, (_d) -> _d.pval).second);
                         //subResults_up.add(NumUtils.minObj(geneDiffs, (_d) -> _d.unpairedPval).second);
                     }
@@ -499,158 +475,9 @@ public class SplicingTest {
         return UPair.createU(diffResults, diffResults_unpaired);
     }
 
-
-
-
-
-
-
-    public UPair<Vector<empires.DoubleDiffResult>> getDifferentialTranscriptExpression(String cond1, String cond2) {
-        Logger log = LogConfig.getLogger();
-
-        empires.NormalizedReplicateSet rs1 = getNormalized(cond1);
-        empires.NormalizedReplicateSet rs2 = getNormalized(cond2);
-
-        PlotCreator pc = (showPlots) ? CachedPlotCreator.getPlotCreator() : null;
-        BufferedImage before = null;
-        if(showPlots) {
-            before = ImageUtils.concat(new empires.plotting.NormalizedReplicateSetPlotting(rs1).plotBackGroundDistribs(pc), new empires.plotting.NormalizedReplicateSetPlotting(rs2).plotBackGroundDistribs(pc));
-        }
-
-        if(correctDistributionsBackwards) {
-            rs1.correctBackWards();
-            rs2.correctBackWards();
-        }
-
-
-        if(showPlots) {
-            BufferedImage after = ImageUtils.concat(new empires.plotting.NormalizedReplicateSetPlotting(rs1).plotBackGroundDistribs(pc), new NormalizedReplicateSetPlotting(rs2).plotBackGroundDistribs(pc));
-            ImageUtils.showImage("test", ImageUtils.vconcat(before, after), false);
-        }
-
-
-        empires.DoubleDiffManager diffManager = new EmpiRe().getDoubleDiffManager(rs1, rs2);
-
-
-        //double pseudo = splicingInfo.getMinCountIntMaxCountCondition() * 0.5;
-        if(pseudo != null) {
-            log.info("apply pseudo : " + pseudo);
-            rs1.applyPseudo(pseudo);
-            rs2.applyPseudo(pseudo);
-        }
-
-        final int nr1 = rs1.getNumReplicates();
-        final int nr2 = rs1.getNumReplicates();
-        final double MINLEVEL = NumUtils.logN(1.0, 2.0);
-
-        Vector<empires.DoubleDiffResult> diffResults = new Vector<>();
-        Vector<empires.DoubleDiffResult> diffResults_unpaired = new Vector<>();
-
-        log.info("got %d/%d genes with <= features", filteredSize(splicingInfo.getGenesForSplicingTest(), (_g) -> splicingInfo.getNumFeatures(_g) <= 1), splicingInfo.getGenesForSplicingTest().size());
-
-        Vector<Vector<String>> packed_genes = VectorUtils.pack(toVector(splicingInfo.getGenesForSplicingTest()), 10);
-        int[] nupdates = new int[1];
-        ThreadUtils.runLambdas(packed_genes,
-                (_gene_vec) ->
-                {
-                    Vector<empires.DoubleDiffResult> subResults = new Vector<>();
-                    Vector<empires.DoubleDiffResult> subResults_up = new Vector<>();
-                    for(String gene : _gene_vec){
-
-                        Vector<String> features = splicingInfo.getFeaturesToGene(gene);
-
-                        HashSet<String> filtered = toSet(features);
-                        /*filterToSet(features, (_f) ->
-                        {
-                            return (nr1 == filteredSize(rs1.getInData().getReplicateData(_f), (_d) -> !Double.isNaN(_d) && _d >= MINLEVEL))
-                                    &&
-                                    (nr2 == filteredSize(rs2.getInData().getReplicateData(_f), (_d) -> !Double.isNaN(_d) && _d >= MINLEVEL))
-                                    ;
-                        });
-                    */
-                        if(filtered.size() < 2)
-                            continue;
-
-                        Vector<empires.DoubleDiffResult> geneDiffs = new Vector<>();
-
-//                        for (Pair<Tuple, String> eq : splicingInfo.getGene2EQClassFeature().get(gene)) {
-//                            if (!filtered.contains(eq.getSecond()))
-//                                continue;
-
-                            Vector<String> f1 = new Vector<>();
-                            Vector<String> f2 = new Vector<>();
-                            f1.addAll(filtered);
-                            f2.addAll(filtered);
-
-                            Vector<String> fs1 = filter(f1, (_f) -> filtered.contains(_f));
-                            Vector<String> fs2 = filter(f2, (_f) -> filtered.contains(_f));
-
-                            Vector<FeatureInfo> merged1 = FeatureInfo.merge(fs1, rs1, rs2, minReadCountTresholdInAllReplicatesInAtLeastOneCondition, pseudo);
-                            Vector<FeatureInfo> merged2 = FeatureInfo.merge(fs2, rs1, rs2, minReadCountTresholdInAllReplicatesInAtLeastOneCondition, pseudo);
-
-                            if(fs1.size() == 0 || fs2.size() == 0)
-                                continue;
-
-                            if(merged1.size() == 0 || merged2.size() == 0)
-                                continue;
-
-                            switch (doubleDiffVariant) {
-                                case QUICK_AND_DIRTY:
-                                    geneDiffs.add(diffManager.getDoubleDiffResultFromFeatureInfos(gene + "." + "all", merged1, merged2));
-                                    break;
-                                case MISSINGVAL:
-                                    geneDiffs.add(diffManager.getDoubleDiffResultFromFeatureInfosRespectMissingValues(gene + "." + "all", merged1, merged2));
-                                    break;
-                                case ALLPAIRS:
-                                    geneDiffs.add(diffManager.getDoubleDiffResultAllPairs(gene + "." + "all", merged1, merged2));
-                                    break;
-                            }
-//                        }
-
-                        if(geneDiffs.size() == 0)
-                            continue;
-
-
-                        //debug atm
-                        empires.DoubleDiffResult best = NumUtils.minObj(geneDiffs, (_d) -> _d.pval).second;
-                        if (
-//                                best.testName.split("\\.")[0].equals("ENSG00000127511") || best.testName.split("\\.")[0].equals("ENSG00000119689") ||
-//                            best.testName.split("\\.")[0].equals("ENSG00000129007") ||
-//                            best.testName.split("\\.")[0].equals("ENSG00000123836") ||
-//                            best.testName.split("\\.")[0].equals("ENSG00000148343") ||
-                                best.testName.split("\\.")[0].equals("ENSG00000138028") //||
-//                            best.testName.split("\\.")[0].equals("ENSG00000135447")
-                        ) {
-                            System.out.println("\n--------------------------\n");
-                            geneDiffs.forEach(_g -> System.out.println(_g.testName + "\t" + String.format("%.2f", _g.meanFC) + "\t" + String.format("%.2f", _g.pval)));
-                            System.out.println("--best--");
-                            System.out.println(best.testName + "\t" + String.format("%.2f", best.meanFC) + "\t" + String.format("%.2f", best.pval));
-                            System.out.println();
-                        }
-
-                        subResults.add(NumUtils.minObj(geneDiffs, (_d) -> _d.pval).second);
-                    }
-
-                    synchronized (diffResults) {
-                        diffResults.addAll(subResults);
-                        //diffResults_unpaired.addAll(subResults_up);
-                        if(++nupdates[0] % 10 == 0) {
-                            log.info("processed %d/%d genes", diffResults.size(), splicingInfo.getGenesForSplicingTest().size());
-                        }
-
-                    }
-                },
-                numThreads, 10, true, -1, null);
-
-        BenjaminiHochberg.adjust_pvalues(diffResults, (_d) -> _d.pval, (_p) -> _p.getFirst().fdr = _p.getSecond());
-        //BenjaminiHochberg.adjust_pvalues(diffResults_unpaired, (_d) -> _d.unpairedPval, (_p) -> _p.getFirst().unpairedFDR = _p.getSecond());
-
-        return UPair.createU(diffResults, diffResults_unpaired);
-    }
-
     public String getSettings() {
         return String.format("minSD to join: %g minCountInAllReps in at least one conditions: %d pseudo: %.2f, reduce to max tr: %d",
-                empires.AutoBackGroundContextProvider.MERGE_BACKGROUNDS_WITH_MAX_SD_DIFF, minReadCountTresholdInAllReplicatesInAtLeastOneCondition, pseudo,
+                AutoBackGroundContextProvider.MERGE_BACKGROUNDS_WITH_MAX_SD_DIFF, minReadCountTresholdInAllReplicatesInAtLeastOneCondition, pseudo,
             splicingInfo.getMaximalTrNumForReduction());
 
     }

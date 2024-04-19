@@ -1,9 +1,9 @@
-package empires.plotting;
+package nlEmpiRe.plotting;
 
-import empires.PairScore;
 import lmu.utils.ImageUtils;
 import lmu.utils.UPair;
 import lmu.utils.plotting.PlotCreator;
+import nlEmpiRe.*;
 
 import java.awt.image.BufferedImage;
 import java.util.Vector;
@@ -15,16 +15,16 @@ public class NormalizedReplicateSetPlotting {
 
     static final Vector<Double> ERRBOXPLOTQUANTILES = toVector(0.05, 0.25, 0.5, 0.75, 0.95);
 
-    empires.NormalizedReplicateSet normalizedReplicateSet;
+    NormalizedReplicateSet normalizedReplicateSet;
 
-    public NormalizedReplicateSetPlotting(empires.NormalizedReplicateSet normalizedReplicateSet) {
+    public NormalizedReplicateSetPlotting(NormalizedReplicateSet normalizedReplicateSet) {
         this.normalizedReplicateSet = normalizedReplicateSet;
     }
 
     public BufferedImage plotNormalizationSteps(PlotCreator pc) {
         Vector<BufferedImage> steps = new Vector<>();
         int step = 0;
-        for(empires.ShiftedGroup sg : normalizedReplicateSet.getNormalization().getSteps()) {
+        for(ShiftedGroup sg : normalizedReplicateSet.getNormalization().getSteps()) {
 
             step++;
             int idx = 0;
@@ -48,7 +48,7 @@ public class NormalizedReplicateSetPlotting {
     }
     public BufferedImage plotSamplePairHeatMap(PlotCreator pc) {
 
-        PairScore[][] errMatrix = empires.Normalization.getPairWiseErrors(normalizedReplicateSet.getInData().getLog2Data());
+        PairScore[][] errMatrix = Normalization.getPairWiseErrors(normalizedReplicateSet.getInData().getLog2Data());
         Vector<String> repNames = normalizedReplicateSet.getInData().getReplicateNames();
         PlotCreator.HeatMapBuilder hmp = new PlotCreator.HeatMapBuilder();
         double maxErr = 0.0;
@@ -72,7 +72,7 @@ public class NormalizedReplicateSetPlotting {
         Vector<UPair<Double>> quantiles = new Vector<>();
         for(int i=0; i<numErrs; i++) {
             double signal =  normalizedReplicateSet.getMeanSignalErrorForErrorIdx(i);
-            empires.ErrorEstimationDistribution dist = normalizedReplicateSet.getErrorByIdx(i);
+            ErrorEstimationDistribution dist = normalizedReplicateSet.getErrorByIdx(i);
             quantiles.add(UPair.createU(signal, dist.getFoldChangeToCumulativeFrequency(quantile)));
         }
         return quantiles;
@@ -87,7 +87,7 @@ public class NormalizedReplicateSetPlotting {
         PlotCreator.BoxPlotBuilder bpb = pc.buildBoxPlot();
         for(int i=0; i<numErrs; i++) {
             String signal = String.format("%.2f", normalizedReplicateSet.getMeanSignalErrorForErrorIdx(i));
-            empires.ErrorEstimationDistribution dist = normalizedReplicateSet.getErrorByIdx(i);
+            ErrorEstimationDistribution dist = normalizedReplicateSet.getErrorByIdx(i);
             Vector<Double> fcs = map(ERRBOXPLOTQUANTILES, (_p) -> dist.getFoldChangeToCumulativeFrequency(_p));
             bpb.addBox(signal, fcs);
         }

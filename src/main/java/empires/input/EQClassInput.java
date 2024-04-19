@@ -1,33 +1,34 @@
-package empires.input;
+package nlEmpiRe.input;
 
-import empires.DiffExpResult;
-import empires.plotting.DiffExpTable;
-import empires.rnaseq.SplicingTest;
-import empires.test.rnaseq.BenchmarkGene;
 import lmu.utils.*;
 import lmu.utils.fdr.PerformanceResult;
 import lmu.utils.plotting.PlotCreator;
 import lmu.utils.swing.PagedDataTable;
+import nlEmpiRe.*;
 import lmu.utils.plotting.CachedPlotCreator;
+import nlEmpiRe.plotting.DiffExpTable;
+import nlEmpiRe.rnaseq.SplicingTest;
+import nlEmpiRe.test.rnaseq.BenchmarkGene;
 
 import java.io.File;
 import java.util.*;
 import java.util.function.Function;
 
 import static lmu.utils.ObjectGetter.*;
+import org.apache.logging.log4j.Logger;
 
 public class EQClassInput {
 
     Logger log = LogConfig.getLogger();
     RNASeqSplicingInfo splicingInfo;
-    empires.input.ExperimentDescriptor experimentDescriptor;
+    ExperimentDescriptor experimentDescriptor;
     DSType targetType;
 
     int limitInput = -1;
     Vector<Double> maxMinCounts = new Vector<>();
     int minCountIntMaxCountCondition;
 
-    public EQClassInput(RNASeqSplicingInfo splicingInfo, empires.input.ExperimentDescriptor experimentDescriptor, DSType targetType,
+    public EQClassInput(RNASeqSplicingInfo splicingInfo, ExperimentDescriptor experimentDescriptor,  DSType targetType,
                         int minCountIntMaxCountCondition) {
         this.splicingInfo = splicingInfo;
         this.targetType = targetType;
@@ -143,7 +144,7 @@ public class EQClassInput {
     }
 
     public static void main(String[] args) {
-        empires.input.GeneralOptions generalOptions = new GeneralOptions();
+        GeneralOptions generalOptions = new GeneralOptions();
         BackgroundProviderOption backgroundProviderOption = new BackgroundProviderOption();
         SimpleOptionParser cmd = new SimpleOptionParser("eqclasscounts", "samples", "cond2reps", "maxtrnum", "pseudo", "trues", "dstype",
                 "showtable", "unmatched","testlimit", "minc", "minctest", "showplots", "cond1", "cond2", "o", "diffexpout", "empireVariant",
@@ -160,7 +161,7 @@ public class EQClassInput {
         cmd.setDefault("pseudo", "2.0");
         cmd.setDefault("dstype", DSType.READS.name);
         cmd.setSwitches("showtable", "unmatched", "showplots");
-        cmd.setDefault("empireVariant", ""+ empires.DoubleDiffVariant.QUICK_AND_DIRTY.getName());
+        cmd.setDefault("empireVariant", ""+ DoubleDiffVariant.QUICK_AND_DIRTY.getName());
 
         if(!OptionParser.parseParams(args, true, false, true, true, cmd, backgroundProviderOption, generalOptions))
             return;
@@ -174,7 +175,7 @@ public class EQClassInput {
         int MAX_TR_NUM = cmd.getInt("maxtrnum");
 
         DSType targetDSType = DSType.get(cmd.getValue("dstype"));
-        empires.input.ExperimentDescriptor experimentDescriptor = new ExperimentDescriptor(cmd.getOptionalFile("cond2reps"), cmd.getFile("samples"), cmd.getOptionalFile("trues"));
+        ExperimentDescriptor experimentDescriptor = new ExperimentDescriptor(cmd.getOptionalFile("cond2reps"), cmd.getFile("samples"), cmd.getOptionalFile("trues"));
 
         RNASeqSplicingInfo splicingInfo = new RNASeqSplicingInfo(MAX_TR_NUM, 1.0,  experimentDescriptor.getCond2Reps());
 
@@ -213,12 +214,12 @@ public class EQClassInput {
             splicingInfo = splicingInfo.restrictToMinCountIntMaxCountCondition(minCountIntMaxCountCondition);
         }
 
-        empires.rnaseq.SplicingTest test = new SplicingTest(splicingInfo, backgroundProviderOption.getStrategy());
-        test.doubleDiffVariant = empires.DoubleDiffVariant.get(cmd.getValue("empireVariant"));
+        SplicingTest test = new SplicingTest(splicingInfo, backgroundProviderOption.getStrategy());
+        test.doubleDiffVariant = DoubleDiffVariant.get(cmd.getValue("empireVariant"));
 
         File diffexpOut = cmd.getOptionalFile("diffexpout");
 
-        HashMap<Boolean, HashMap<String, empires.DiffExpResult>> diffexpResults = new HashMap<>();
+        HashMap<Boolean, HashMap<String, DiffExpResult>> diffexpResults = new HashMap<>();
 
         HashSet<String> trueDiffexp = (cmd.isOptionSet("truediffexp")) ? FileUtils.readSet(cmd.getFile("truediffexp")) : null;
 
@@ -262,11 +263,11 @@ public class EQClassInput {
 
         if(diffexpOut != null) {
             for(boolean summarize : toVector(false, true)) {
-                Vector<empires.DiffExpResult> diff = test.getDiffGenes(cond1, cond2, summarize);
-                Vector<empires.DiffExpResult> nosplicdiff = filter(diff, (_d) -> !experimentDescriptor.isTrue(_d.combinedFeatureName));
+                Vector<DiffExpResult> diff = test.getDiffGenes(cond1, cond2, summarize);
+                Vector<DiffExpResult> nosplicdiff = filter(diff, (_d) -> !experimentDescriptor.isTrue(_d.combinedFeatureName));
 
                 if(summarize) {
-                    new empires.plotting.DiffExpTable(test.getNormalized(cond1), test.getNormalized(cond2), diff).getTable().writeCSV(diffexpOut);
+                    new DiffExpTable(test.getNormalized(cond1), test.getNormalized(cond2), diff).getTable().writeCSV(diffexpOut);
                 }
 
 
@@ -276,7 +277,7 @@ public class EQClassInput {
                 if(trueDiffexp != null) {
 
                     for(double FC : toVector(0.0, 0.1, 0.25, 0.5)) {
-                        PerformanceResult[] results = empires.DiffExpResult.getPerformances(nosplicdiff, trueDiffexp, 0.05, FC);
+                        PerformanceResult[] results = DiffExpResult.getPerformances(nosplicdiff, trueDiffexp, 0.05, FC);
                         for(PerformanceResult pr: results) {
                             System.out.println(pr.setTitle(prefix + pr.getTitle()));
                         }
@@ -299,7 +300,7 @@ public class EQClassInput {
         log.info("calc splicing conditions: %s to test: %s, %s", conditions, cond1, cond2);
         //test.getQuickTest(conditions.get(0), conditions.get(1), trueGenes);
         long t1 = System.currentTimeMillis();
-        UPair<Vector<empires.DoubleDiffResult>> splicing = test.getDifferentialAlternativeSplicing(cond1, cond2);
+        UPair<Vector<DoubleDiffResult>> splicing = test.getDifferentialAlternativeSplicing(cond1, cond2);
         long t2 = System.currentTimeMillis();
         long DAS_test_time = t2 - t1;
         log.info("DAS test time: %.2f sec.", DAS_test_time / 1000.0);
@@ -309,7 +310,7 @@ public class EQClassInput {
 
         if(experimentDescriptor.gotTrues()) {
 
-            Function<empires.DoubleDiffResult, Boolean> trueLabeller = (_dr) -> experimentDescriptor.isTrue(_dr.testName.split("\\.")[0]);
+            Function<DoubleDiffResult, Boolean> trueLabeller = (_dr) -> experimentDescriptor.isTrue(_dr.testName.split("\\.")[0]);
 
             String name = String.format("nlEmpiRe.%s.%d.%d", test.doubleDiffVariant.getName(), (int)cmd.getDouble("pseudo"), cmd.getInt("minc"));
             pr = new PerformanceResult(name, splicing.getFirst(), (_dr) -> _dr.pval, trueLabeller,
@@ -338,29 +339,29 @@ public class EQClassInput {
 
         }
         if(cmd.isSet("showtable")) {
-            List<Pair<String, Function<empires.test.rnaseq.BenchmarkGene, Object>>> additionalHeaders = new ArrayList<>();
+            List<Pair<String, Function<BenchmarkGene, Object>>> additionalHeaders = new ArrayList<>();
             if(trueDiffexp != null) {
-                additionalHeaders.add(Pair.create("Tdiffexp", (empires.test.rnaseq.BenchmarkGene _bg) -> trueDiffexp.contains(_bg.geneId)));
+                additionalHeaders.add(Pair.create("Tdiffexp", (BenchmarkGene _bg) -> trueDiffexp.contains(_bg.geneId)));
             }
 
 
             for(Boolean summarized : diffexpResults.keySet()) {
-                HashMap<String, empires.DiffExpResult> lookup = diffexpResults.get(summarized);
+                HashMap<String, DiffExpResult> lookup = diffexpResults.get(summarized);
                 String prefix = (summarized) ? "sum.diff" : "comb.diff";
 
-                Function<String, Double> FDR_GETTER = (_s) -> { empires.DiffExpResult der = lookup.get(_s); return (der == null) ? 2.0 : der.fcEstimateFDR;};
+                Function<String, Double> FDR_GETTER = (_s) -> { DiffExpResult der = lookup.get(_s); return (der == null) ? 2.0 : der.fcEstimateFDR;};
                 Function<String, Double> FC_GETTER = (_s) -> { DiffExpResult der = lookup.get(_s); return (der == null) ? 0.0 : der.estimatedFC;};
-                additionalHeaders.add(Pair.create(prefix+".diff", (empires.test.rnaseq.BenchmarkGene _bg) -> FDR_GETTER.apply(_bg.geneId)));
-                additionalHeaders.add(Pair.create(prefix+".log2FC", (empires.test.rnaseq.BenchmarkGene _bg) -> FC_GETTER.apply(_bg.geneId)));
+                additionalHeaders.add(Pair.create(prefix+".diff", (BenchmarkGene _bg) -> FDR_GETTER.apply(_bg.geneId)));
+                additionalHeaders.add(Pair.create(prefix+".log2FC", (BenchmarkGene _bg) -> FC_GETTER.apply(_bg.geneId)));
 
-                empires.DiffExpManager dm = first(lookup.values()).getDiffExpManager();
-                empires.plotting.DiffExpTable difft = new DiffExpTable(dm.replicateSetFrom, dm.replicateSetTo, toVector(lookup.values()), 0.3, 0.05, (_s) -> (trueDiffexp == null) ? false : trueDiffexp.contains(_s));
+                DiffExpManager dm = first(lookup.values()).getDiffExpManager();
+                DiffExpTable difft = new DiffExpTable(dm.replicateSetFrom, dm.replicateSetTo, toVector(lookup.values()), 0.3, 0.05, (_s) -> (trueDiffexp == null) ? false : trueDiffexp.contains(_s));
 
                 PagedDataTable.MJFrame mjFrame = difft.showInteractiveTable(Pair.create("diffsplic", (_dr) -> !(experimentDescriptor.gotTrues()) ? false : experimentDescriptor.trues.contains(_dr.combinedFeatureName)));
                 mjFrame.setTitle("summ: + " + summarized + " " + mjFrame.getTitle());
             }
-            DataTable dt = empires.test.rnaseq.BenchmarkGene.getTable(splicing.getFirst(), experimentDescriptor.getTrues(), null, splicingInfo, additionalHeaders);
-            empires.test.rnaseq.BenchmarkGene.getWithDetails(dt).setTitle("paired: " + pr);
+            DataTable dt = BenchmarkGene.getTable(splicing.getFirst(), experimentDescriptor.getTrues(), null, splicingInfo, additionalHeaders);
+            BenchmarkGene.getWithDetails(dt).setTitle("paired: " + pr);
             //BenchmarkGene.showTable(splicing.getSecond(), trueGenes, null, splicingInfo).setTitle("unpaired: " + prUP);
         }
 

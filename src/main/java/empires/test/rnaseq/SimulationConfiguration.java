@@ -1,10 +1,10 @@
-package empires.test.rnaseq;
+package nlEmpiRe.test.rnaseq;
 
-import empires.rnaseq.IsoformRegionGetter;
-import empires.rnaseq.simulation.PositionBiasFactory;
-import empires.rnaseq.simulation.SplicingSimulation;
 import lmu.utils.*;
 import lmu.utils.plotting.PlotCreator;
+import nlEmpiRe.rnaseq.*;
+import nlEmpiRe.rnaseq.simulation.PositionBiasFactory;
+import nlEmpiRe.rnaseq.simulation.SplicingSimulation;
 import org.apache.commons.math3.distribution.NormalDistribution;
 
 import java.awt.image.BufferedImage;
@@ -23,8 +23,8 @@ public class SimulationConfiguration {
 
     public File reportOutDir = null;
     public FastQGenerator fastQGenerator;
-    public empires.rnaseq.IsoformRegionGetter isoformRegionGetter;
-    public empires.rnaseq.simulation.PositionBiasFactory biasFactory = new empires.rnaseq.simulation.PositionBiasFactory();
+    public IsoformRegionGetter isoformRegionGetter;
+    public PositionBiasFactory biasFactory = new PositionBiasFactory();
     public int fragmentLengthMean = 200;
     public double fragmentLengthSD = 60;
     public int readLength = 60;
@@ -36,12 +36,12 @@ public class SimulationConfiguration {
     }
 
 
-    public SimulationConfiguration(empires.rnaseq.IsoformRegionGetter isoformRegionGetter) {
+    public SimulationConfiguration(IsoformRegionGetter isoformRegionGetter) {
         this();
         setAnnotation(isoformRegionGetter);
     }
 
-    public empires.rnaseq.IsoformRegionGetter getAnnot() {
+    public IsoformRegionGetter getAnnot() {
         return isoformRegionGetter;
     }
 
@@ -53,7 +53,7 @@ public class SimulationConfiguration {
         return (fastQGenerator == null) ? null : fastQGenerator.readInReplicateConsumer;
     }
 
-    public empires.rnaseq.simulation.PositionBiasFactory getBiasFactory() {
+    public PositionBiasFactory getBiasFactory() {
 
         return (biasFactory != null) ? biasFactory : (biasFactory = new PositionBiasFactory(positionalBias, new NormalDistribution(fragmentLengthMean, fragmentLengthSD), readLength, paired));
     }

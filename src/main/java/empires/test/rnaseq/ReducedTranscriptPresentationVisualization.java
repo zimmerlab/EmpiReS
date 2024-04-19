@@ -1,9 +1,9 @@
-package empires.test.rnaseq;
+package nlEmpiRe.test.rnaseq;
 
-import empires.rnaseq.ReducedTranscriptPresentation;
 import lmu.utils.*;
 import lmu.utils.plotting.*;
 import lmu.utils.tuple.Tuple4;
+import nlEmpiRe.rnaseq.ReducedTranscriptPresentation;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -11,7 +11,7 @@ import java.util.*;
 
 import static lmu.utils.ObjectGetter.*;
 
-public class ReducedTranscriptPresentationVisualization implements empires.rnaseq.ReducedTranscriptPresentation.DetailProcesser {
+public class ReducedTranscriptPresentationVisualization implements ReducedTranscriptPresentation.DetailProcesser {
 
     Vector<BufferedImage> images = new Vector<>();
     public static class EQClassDecorator extends RegionPlot.RegionDecorator
@@ -42,7 +42,7 @@ public class ReducedTranscriptPresentationVisualization implements empires.rnase
 
     public BufferedImage plot(HashMap<Tuple, Double> restrictedEQCounts, String title, Set<String> restrictToTranscripts) {
         HashMap<String, Vector<Tuple>> tr2eqs = new HashMap<>();
-        HashMap<String, Double>  tr2count = empires.rnaseq.ReducedTranscriptPresentation.getPartialCounts(restrictedEQCounts.keySet(), restrictedEQCounts, tr2eqs);
+        HashMap<String, Double>  tr2count = ReducedTranscriptPresentation.getPartialCounts(restrictedEQCounts.keySet(), restrictedEQCounts, tr2eqs);
         if(restrictToTranscripts != null) {
             Set<String> toremove = SetInfo.minus(tr2count.keySet(), restrictToTranscripts);
             apply(toremove, (_k) -> tr2count.remove(_k));
@@ -102,7 +102,7 @@ public class ReducedTranscriptPresentationVisualization implements empires.rnase
 
     }
     int iter = 0;
-    empires.rnaseq.ReducedTranscriptPresentation reducer;
+    ReducedTranscriptPresentation reducer;
     HashMap<String, PriorityQueue<Pair<String, Double>>> tr2mostSim;
     HashMap<Tuple, Double> EqClassToCounts;
     HashMap<String, Double> tr2count;

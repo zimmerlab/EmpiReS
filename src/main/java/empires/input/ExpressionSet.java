@@ -1,12 +1,12 @@
-package empires.input;
+package nlEmpiRe.input;
 
-import empires.EmpiRe;
-import empires.plotting.DiffExpTable;
-import empires.plotting.NormalizedReplicateSetPlotting;
 import lmu.utils.*;
 import lmu.utils.plotting.PlotCreator;
 import lmu.utils.tuple.Tuple3;
+import nlEmpiRe.*;
 import lmu.utils.plotting.CachedPlotCreator;
+import nlEmpiRe.plotting.DiffExpTable;
+import nlEmpiRe.plotting.NormalizedReplicateSetPlotting;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -29,7 +29,7 @@ public class ExpressionSet {
         HashMap<String, Integer> replicate2InputIndex = new HashMap<>();
         HashMap<String, Integer> replicate2localIndex = new HashMap<>();
         HashMap<Integer, Integer> global2localidx = new HashMap<>();
-        empires.input.ReplicateSetInfo data;
+        ReplicateSetInfo data;
 
         public ConditionConfiguration(String condition) {
             this.condition = condition;
@@ -47,7 +47,7 @@ public class ExpressionSet {
         }
 
         public void setFeatureLabels(Vector<String> names) {
-            data = new empires.input.ReplicateSetInfo(condition, replicateNames, names);
+            data = new ReplicateSetInfo(condition, replicateNames, names);
         }
 
         public void setFeatureData(int replicateInputIdx, int featureIdx, double val) {
@@ -56,11 +56,11 @@ public class ExpressionSet {
         }
     }
 
-    public static HashMap<String, empires.input.ReplicateSetInfo> readDataGroupedByCondition(File exprSetDir) {
-        return readDataGroupedByCondition(empires.input.EBROWSER_INPUT.EXPRS.get(exprSetDir), empires.input.EBROWSER_INPUT.FDATA.get(exprSetDir), empires.input.EBROWSER_INPUT.PDATA.get(exprSetDir));
+    public static HashMap<String, ReplicateSetInfo> readDataGroupedByCondition(File exprSetDir) {
+        return readDataGroupedByCondition(EBROWSER_INPUT.EXPRS.get(exprSetDir), EBROWSER_INPUT.FDATA.get(exprSetDir), EBROWSER_INPUT.PDATA.get(exprSetDir));
     }
 
-    public static HashMap<String, empires.input.ReplicateSetInfo> readDataGroupedByCondition(File expr, File f, File p_data) {
+    public static HashMap<String, ReplicateSetInfo> readDataGroupedByCondition(File expr, File f, File p_data) {
 
 
         HashMap<String, ConditionConfiguration> cond2config = new HashMap<>();
@@ -104,7 +104,7 @@ public class ExpressionSet {
 
     public static void main(String[] args) {
         BackgroundProviderOption backgroundProviderOption = new BackgroundProviderOption();
-        empires.input.GeneralOptions generalOptions = new GeneralOptions();
+        GeneralOptions generalOptions = new GeneralOptions();
         SimpleOptionParser cmd = new SimpleOptionParser("inputdir", "cond1", "cond2", "o", "distribout", "interactive",
                 "fcthreshold", "fdrthreshold", "getbestsubN", "normdetails");
         cmd.setDir("inputdir");
@@ -128,7 +128,7 @@ public class ExpressionSet {
         generalOptions.apply();
 
         File inputDir = cmd.getFile("inputdir");
-        HashMap<String, empires.input.ReplicateSetInfo> data = readDataGroupedByCondition(inputDir);
+        HashMap<String, ReplicateSetInfo> data = readDataGroupedByCondition(inputDir);
 
         if(cmd.isSet("normdetails")) {
             PlotCreator pc = CachedPlotCreator.getPlotCreator();
@@ -145,11 +145,11 @@ public class ExpressionSet {
                         Vector<Double> v2 = logdata.get(j);
 
                         System.out.printf("%s %d,%d errd\n", cond, i, j);
-                        empires.ErrorEstimationDistribution errD = empires.PairwiseMedianImpliedFCPeakErrorEstimation.getShiftError(v1, v2);
+                        ErrorEstimationDistribution errD = PairwiseMedianImpliedFCPeakErrorEstimation.getShiftError(v1, v2);
 
                         errD.getCumulative(true);
                         System.out.printf("%s %d,%d peak\n", cond, i, j);
-                        empires.ErrorEstimationDistribution.Peak peak = errD.getBestFCPeak();
+                        ErrorEstimationDistribution.Peak peak = errD.getBestFCPeak();
 
                         System.out.printf("%s %d,%d images\n", cond, i, j);
                         Vector<BufferedImage> rowImages = new Vector<>();
@@ -160,12 +160,12 @@ public class ExpressionSet {
 
                             System.out.printf("%s %d,%d line %d: %d\n", cond, i, j, c, line.size());
                             pc.line("", line, (_p) -> _p.getFirst(), (_p) -> _p.getSecond());
-                            pc.setTitle("%s vs %s shift: %.2f", repnames.get(i), repnames.get(j), peak.summit * empires.ErrorEstimationDistribution.norm + errD.getMinFC());
+                            pc.setTitle("%s vs %s shift: %.2f", repnames.get(i), repnames.get(j), peak.summit * ErrorEstimationDistribution.norm + errD.getMinFC());
                             pc.setLabels("log2fc", "freq", null);
 
-                            pc.abline("", peak.peakStart * empires.ErrorEstimationDistribution.norm + errD.getMinFC(), null, null, null);
-                            pc.abline("", peak.summit * empires.ErrorEstimationDistribution.norm + errD.getMinFC(), null, null, null);
-                            pc.abline("", peak.peakEnd * empires.ErrorEstimationDistribution.norm + errD.getMinFC(), null, null, null);
+                            pc.abline("", peak.peakStart * ErrorEstimationDistribution.norm + errD.getMinFC(), null, null, null);
+                            pc.abline("", peak.summit * ErrorEstimationDistribution.norm + errD.getMinFC(), null, null, null);
+                            pc.abline("", peak.peakEnd * ErrorEstimationDistribution.norm + errD.getMinFC(), null, null, null);
 
                             System.out.printf("will plot line:\n");
                             rowImages.add(pc.getImage());
@@ -177,8 +177,8 @@ public class ExpressionSet {
 
                 }
                 System.out.printf("start normalizing for cond: %s\n",  cond);
-                empires.NormalizedReplicateSet nrs = new empires.NormalizedReplicateSet(data.get(cond));
-                empires.plotting.NormalizedReplicateSetPlotting nrsp = new NormalizedReplicateSetPlotting(nrs);
+                NormalizedReplicateSet nrs = new NormalizedReplicateSet(data.get(cond));
+                NormalizedReplicateSetPlotting nrsp = new NormalizedReplicateSetPlotting(nrs);
 
                 ImageUtils.showImage(cond, ImageUtils.vconcat(images));
                 ImageUtils.showImage(cond + " norm steps", nrsp.plotNormalizationSteps(CachedPlotCreator.getPlotCreator()));
@@ -192,10 +192,10 @@ public class ExpressionSet {
                 Vector<Vector<Double>> logdata = data.get(cond).getLog2Data();
                 if(logdata.size() < subN)
                     continue;
-                Vector<Integer> bestSub = empires.Normalization.getBestSubSample(logdata, subN);
+                Vector<Integer> bestSub = Normalization.getBestSubSample(logdata, subN);
 
                 Vector<Vector<Double>> sublogdata = map(bestSub, (_i) -> logdata.get(_i));
-                empires.Normalization subNorm = new empires.Normalization(sublogdata);
+                Normalization subNorm = new Normalization(sublogdata);
                 int anchor = subNorm.getAnchorSampleIdx();
                 System.out.printf("cond: %s\n", cond);
                 Vector<Double> sds = new Vector<>();
@@ -203,7 +203,7 @@ public class ExpressionSet {
                     if(i == anchor)
                         continue;
 
-                    empires.ErrorEstimationDistribution err =  empires.PairwiseMedianImpliedFCPeakErrorEstimation.getShiftError(sublogdata.get(i), sublogdata.get(anchor));
+                    ErrorEstimationDistribution err =  PairwiseMedianImpliedFCPeakErrorEstimation.getShiftError(sublogdata.get(i), sublogdata.get(anchor));
                     sds.add(err.getSD());
                     System.out.printf("\terr: %d (anchor: %d) sd: %.2f\n", i, anchor, err.getSD());
 
@@ -225,7 +225,7 @@ public class ExpressionSet {
 
             PrintWriter pw = cmd.getWriter("o");
             int nrep1 = subN >> 1;
-            empires.input.ReplicateSetInfo selRepMes = data.get(bestSelection.get0());
+            ReplicateSetInfo selRepMes = data.get(bestSelection.get0());
 
             pw.printf("gene");
             Vector<Integer> selIndeces = shuffle(bestSelection.get2(), true);
@@ -258,7 +258,7 @@ public class ExpressionSet {
         String cond1 = cmd.getOptionalValue("cond1", condvec.get(0));
         String cond2 = cmd.getOptionalValue("cond2", condvec.get(1));
 
-        empires.input.ReplicateSetInfo rs1 = data.get(cond1);
+        ReplicateSetInfo rs1 = data.get(cond1);
         ReplicateSetInfo rs2 = data.get(cond2);
 
         if(rs1 == null || rs2 == null) {
@@ -273,29 +273,29 @@ public class ExpressionSet {
             return;
         }
 
-        empires.BackgroundContextFuzzficationStrategyProvider backgroundContextFuzzficationStrategyProvider = backgroundProviderOption.getStrategy();
-        empires.NormalizedReplicateSet nrs1 = new empires.NormalizedReplicateSet(rs1, backgroundContextFuzzficationStrategyProvider);
-        empires.NormalizedReplicateSet nrs2 = new empires.NormalizedReplicateSet(rs2, backgroundContextFuzzficationStrategyProvider);
-        Vector<empires.DiffExpResult> diffExpResults = new EmpiRe().getDifferentialResults(nrs1, nrs2);
-        empires.plotting.DiffExpTable diffExpTable = new DiffExpTable(nrs1, nrs2, diffExpResults, cmd.getDouble("fcthreshold"), cmd.getDouble("fdrthreshold"));
+        BackgroundContextFuzzficationStrategyProvider backgroundContextFuzzficationStrategyProvider = backgroundProviderOption.getStrategy();
+        NormalizedReplicateSet nrs1 = new NormalizedReplicateSet(rs1, backgroundContextFuzzficationStrategyProvider);
+        NormalizedReplicateSet nrs2 = new NormalizedReplicateSet(rs2, backgroundContextFuzzficationStrategyProvider);
+        Vector<DiffExpResult> diffExpResults = new EmpiRe().getDifferentialResults(nrs1, nrs2);
+        DiffExpTable diffExpTable = new DiffExpTable(nrs1, nrs2, diffExpResults, cmd.getDouble("fcthreshold"), cmd.getDouble("fdrthreshold"));
 
 
         diffExpTable.getTable().writeCSV(cmd.getFile("o"));
 
         File distribout = cmd.getOptionalFile("distribout");
         if(distribout != null) {
-            new empires.NamedFoldChangeDistributionMap(diffExpResults).serialize(distribout);
+            new NamedFoldChangeDistributionMap(diffExpResults).serialize(distribout);
         }
 
         File trues = EBROWSER_INPUT.TRUES.get(inputDir);
         HashSet<String> truesIds = (!trues.exists()) ? new HashSet<>() : FileUtils.readSet(trues);
         System.out.printf("GOT %d trues!\n", truesIds.size());
         if(truesIds.size() > 0) {
-            System.out.println(empires.DiffExpResult.getPerformanceString(diffExpResults, truesIds));
+            System.out.println(DiffExpResult.getPerformanceString(diffExpResults, truesIds));
         }
 
         if(cmd.isSet("interactive")) {
-            Vector<Pair<String, Function<empires.DiffExpResult, Object>>> additionalHeaders = new Vector<>();
+            Vector<Pair<String, Function<DiffExpResult, Object>>> additionalHeaders = new Vector<>();
             if(truesIds.size() > 0) {
                 additionalHeaders.add(Pair.create("isTrue", (_d) -> truesIds.contains(_d.combinedFeatureName)));
             }

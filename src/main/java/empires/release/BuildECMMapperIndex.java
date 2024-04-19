@@ -1,6 +1,6 @@
-package empires.release;
+package nlEmpiRe.release;
 
-import empires.rnaseq.mapping.ExtractTranscriptomeInfo;
+import nlEmpiRe.rnaseq.mapping.ExtractTranscriptomeInfo;
 
 public class BuildECMMapperIndex {
 

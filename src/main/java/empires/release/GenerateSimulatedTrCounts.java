@@ -1,34 +1,32 @@
-package empires.release;
+package nlEmpiRe.release;
 
-import empires.NormalizedReplicateSet;
 import lmu.utils.*;
 import lmu.utils.plotting.*;
 import lmu.utils.swing.PagedDataTable;
-import empires.input.ReplicateSetInfo;
-import empires.rnaseq.GFFBasedIsoformRegionGetter;
-import empires.rnaseq.IsoformRegionGetter;
-import empires.rnaseq.MultiIsoformRegion;
+import nlEmpiRe.*;
+import nlEmpiRe.input.ReplicateSetInfo;
+import nlEmpiRe.rnaseq.GFFBasedIsoformRegionGetter;
+import nlEmpiRe.rnaseq.IsoformRegionGetter;
+import nlEmpiRe.rnaseq.MultiIsoformRegion;
 import org.apache.commons.math3.distribution.NormalDistribution;
 
 import java.awt.*;
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
-import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static lmu.utils.IteratorUtils.rangev;
 import static lmu.utils.ObjectGetter.*;
 import static lmu.utils.ObjectGetter.apply;
+import org.apache.logging.log4j.Logger;
 
 public class GenerateSimulatedTrCounts {
 
     Logger log = LogConfig.getLogger();
     Vector<String> features = new Vector<>();
     ReplicateSetInfo baseCondition;
-    empires.NormalizedReplicateSet normalizedBaseCondition;
+    NormalizedReplicateSet normalizedBaseCondition;
     HashMap<String, Vector<Integer>> tr2counts1 = new HashMap<>();
     HashMap<String, Vector<Integer>> tr2counts2 = new HashMap<>();
     Vector<Pair<Double, String>> logmean2featureName ;
@@ -482,27 +480,8 @@ public class GenerateSimulatedTrCounts {
 
         double oneTrZeroProb = 0.3;
 
-//        try(PrintWriter pw = new PrintWriter("/mnt/raidinput2/tmp/hadziahmetovic/empires_2021/input/refgene.keyset")) {
-//            refgene2tr.keySet().forEach(pw::println);
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-
-        List<String> missing =  diffsplicids.stream().filter(_id -> refgene2tr.get(_id) == null).collect(Collectors.toList());
-        List<String> missingDE =  diffexp.stream().filter(_id -> refgene2tr.get(_id) == null).collect(Collectors.toList());
-
-        if (missing.size() > 0) {
-//            throw new RuntimeException("got genes for which no trs were found: " + String.join(",", missing));
-            diffsplicids.removeAll(missing);
-        }
-
-        if (missingDE.size() > 0) {
-            diffexp.removeAll(missingDE);
-//            throw new RuntimeException("got genes for which no trs were found: " + String.join(",", missingDE));
-        }
-
         Vector<String> diffvec = NumUtils.sort(filter(diffexp, (_d) -> !diffsplic.contains(_d)), (_d) -> refgene2tr.get(_d).size(), true);
-        log.info("got %d/%d multi tr diffexp\n", filteredSize(diffvec, (_d) -> refgene2tr.get(_d).size() > 1), diffvec.size());
+        log.info(String.format("got %d/%d multi tr diffexp\n", filteredSize(diffvec, (_d) -> refgene2tr.get(_d).size() > 1), diffvec.size()));
 
 
 
@@ -518,17 +497,8 @@ public class GenerateSimulatedTrCounts {
 
         HashMap<String, HashMap<String, Double>> g2tr2fc = new HashMap<>();
 
-
-        List<String> missingTr = diffsplicids.stream().filter(_gene -> refgene2tr.get(_gene).size() < 2).collect(Collectors.toList());
-
-
-        if (missingTr.size() > 0) {
-            diffsplicids.removeAll(missingTr);
-            throw new RuntimeException("got genes for which no trs were found: " + String.join(",", missingTr));
-        }
-
         int numUnchangingMajor = 0;
-        for(int i=0; i < diffsplicids.size()-1; i+=2) {
+        for(int i=0; i<diffsplicids.size(); i+=2) {
             String g1 = diffsplicids.get(i);
             String g2 = diffsplicids.get(i+1);
 
@@ -621,7 +591,7 @@ public class GenerateSimulatedTrCounts {
         Vector<Double> diffs = new Vector<>();
 
         //log.info("will simulate  %d  x 2 diff trs with step: %d", ntotal, step);
-        for(int i=0; i < diffvec.size()-1; i+=2) {
+        for(int i=0; i<diffvec.size(); i+=2) {
             double FC = ((Math.random() < 0.5) ? 1 : -1) * (MINIMUM_FC + Math.abs(foldChangeGetter.sample()));
             String g1 = diffvec.get(i);
             String g2 = diffvec.get(i+1);
@@ -650,7 +620,7 @@ public class GenerateSimulatedTrCounts {
                 swaps.put(fn1, fn2);
                 swaps.put(fn2, fn1);
                 double gotFC = newcounts.getFC(idx, idx2);
-                if(Math.abs(gotFC) + 0.05 < MINIMUM_FC)
+                if(Math.abs(Math.abs(gotFC) + 0.05 - MINIMUM_FC)<0.0001)
                     throw  new FRuntimeException("invlaid fc: %.2f simul: %.2f", gotFC, FC);
                 real_fcs.add(gotFC);
 
@@ -659,8 +629,10 @@ public class GenerateSimulatedTrCounts {
 
             }
 
-            if(real_fcs.size() == 1)
+            if(real_fcs.size() == 1) {
+                diffs.add(real_fcs.get(0));
                 continue;
+            }
 
             Collections.sort(real_fcs);
             double maxfcdiff = real_fcs.get(real_fcs.size() - 1) - real_fcs.get(0);

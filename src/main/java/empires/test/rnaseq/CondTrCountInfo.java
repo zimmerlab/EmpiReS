@@ -1,4 +1,4 @@
-package empires.test.rnaseq;
+package nlEmpiRe.test.rnaseq;
 
 import lmu.utils.NumUtils;
 import lmu.utils.UPair;
